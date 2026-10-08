@@ -37,7 +37,7 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
-# React Native (futuro)
+# React Native / Expo
 apps/mobile/.expo/
 apps/mobile/android/
 apps/mobile/ios/Pods/

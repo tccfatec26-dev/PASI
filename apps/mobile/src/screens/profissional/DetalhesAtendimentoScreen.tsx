@@ -17,7 +17,8 @@ import { avaliacoesService } from '../../services/avaliacoes';
 import { useFeedback } from '../../context/FeedbackContext';
 import { SituacaoFormulario } from '../../constants/dominio';
 import { colors } from '../../constants/colors';
-import { formatData, maskCpf } from '../../utils/format';
+import { maskCpf } from '../../utils/format';
+import { formatData } from '../../utils/date';
 import { mensagemErroApi } from '../../utils/errors';
 
 type RouteT = RouteProp<ProfissionalStackParamList, 'DetalhesAtendimento'>;

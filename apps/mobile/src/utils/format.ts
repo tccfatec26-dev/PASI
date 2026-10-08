@@ -3,11 +3,6 @@ export function formatProtocolo(id: number, dtCadastro?: string | null) {
   return `ATD-${year}-${String(id).padStart(4, '0')}`;
 }
 
-export function formatData(iso?: string | null) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString('pt-BR');
-}
-
 export function maskCpf(cpf: string) {
   const c = cpf.replace(/\D/g, '');
   if (c.length !== 11) return cpf;

@@ -30,23 +30,10 @@ import { colors } from '../constants/colors';
 import { formatTelefone, cleanMask } from '../utils/masks';
 import { isEmailValido } from '../utils/validation';
 import { maskCpf } from '../utils/format';
+import { maskDataBr, brParaIso, isoParaBr } from '../utils/date';
 import { mensagemErroApi } from '../utils/errors';
 
 type Genero = { id_genero: number; nome: string };
-
-function isoParaBr(iso?: string | null): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  const dia = String(d.getUTCDate()).padStart(2, '0');
-  const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
-  return `${dia}/${mes}/${d.getUTCFullYear()}`;
-}
-
-function brParaIso(br: string): string | null {
-  if (br.length !== 10) return null;
-  const [d, m, y] = br.split('/');
-  return `${y}-${m}-${d}`;
-}
 
 function iniciais(nome?: string) {
   if (!nome) return '?';
@@ -160,12 +147,13 @@ export function PerfilScreen() {
     if (!isEmailValido(email)) e.email = 'E-mail inválido (ex.: nome@dominio.com)';
     if (cleanMask(tel).length < 10) e.tel = 'Telefone inválido';
     if (!isProfissional) {
+      if (dtNascimento && !brParaIso(dtNascimento)) e.dtNascimento = 'Data inválida (dd/mm/aaaa)';
       if (cleanMask(cep).length !== 8) e.cep = 'Informe um CEP válido';
       if (!numero.trim()) e.numero = 'Informe o número';
     }
     setErrors(e);
     if (Object.keys(e).length > 0) {
-      scrollPara(['nome', 'email', 'tel'].filter((k) => e[k]));
+      scrollPara(['nome', 'email', 'tel', 'dtNascimento'].filter((k) => e[k]));
       return;
     }
 
@@ -181,7 +169,8 @@ export function PerfilScreen() {
         ...(isProfissional
           ? {}
           : {
-              dt_nascimento: dtNascimento ? brParaIso(dtNascimento) : null,
+              // Campo vazio envia null para apagar a data (já validada acima).
+              dt_nascimento: brParaIso(dtNascimento) ?? null,
               nac_estrangeira: nacEstrangeira,
               cep: cleanMask(cep) || undefined,
               logradouro: logradouro.trim() || undefined,
@@ -287,20 +276,17 @@ export function PerfilScreen() {
 
           {/* Data de nascimento — apenas paciente */}
           {!isProfissional && (
-            <InputField
-              label="Data de nascimento"
-              placeholder="dd/mm/aaaa"
-              value={dtNascimento}
-              onChangeText={(t) => {
-                const d = t.replace(/\D/g, '').slice(0, 8);
-                let fmt = d;
-                if (d.length > 4) fmt = `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
-                else if (d.length > 2) fmt = `${d.slice(0, 2)}/${d.slice(2)}`;
-                setDtNascimento(fmt);
-              }}
-              keyboardType="numeric"
-              maxLength={10}
-            />
+            <View onLayout={registrar('dtNascimento')}>
+              <InputField
+                label="Data de nascimento"
+                placeholder="dd/mm/aaaa"
+                value={dtNascimento}
+                onChangeText={(t) => setDtNascimento(maskDataBr(t))}
+                keyboardType="numeric"
+                maxLength={10}
+                error={errors.dtNascimento}
+              />
+            </View>
           )}
 
           <SegmentedControl label="Sexo" options={SEXO_OPCOES} value={sexo} onChange={setSexo} />

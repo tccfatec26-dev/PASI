@@ -19,6 +19,7 @@ import { useScrollToError } from '../hooks/useScrollToError';
 import { SEXO_OPCOES, Sexo } from '../constants/dominio';
 import { formatCPF, formatTelefone, cleanMask } from '../utils/masks';
 import { isCpfValido, isEmailValido, isSenhaForte, SENHA_MENSAGEM } from '../utils/validation';
+import { maskDataBr, brParaIso } from '../utils/date';
 import { mensagemErroApi } from '../utils/errors';
 import { colors } from '../constants/colors';
 
@@ -82,9 +83,10 @@ export function CadastroPacienteScreen() {
     if (!isCpfValido(cpf)) e.cpf = 'CPF inválido';
     if (!isEmailValido(email)) e.email = 'E-mail inválido (ex.: nome@dominio.com)';
     if (cleanMask(tel).length < 10) e.tel = 'Telefone inválido';
+    if (dtNascimento && !brParaIso(dtNascimento)) e.dtNascimento = 'Data inválida (dd/mm/aaaa)';
     setErrors(e);
     if (Object.keys(e).length > 0) {
-      scrollPara(['nome', 'cpf', 'email', 'tel'].filter((k) => e[k]));
+      scrollPara(['nome', 'cpf', 'email', 'tel', 'dtNascimento'].filter((k) => e[k]));
       return false;
     }
     return true;
@@ -107,19 +109,13 @@ export function CadastroPacienteScreen() {
 
     setLoading(true);
     try {
-      let dtFormatted: string | undefined;
-      if (dtNascimento.length === 10) {
-        const [d, m, y] = dtNascimento.split('/');
-        dtFormatted = `${y}-${m}-${d}`;
-      }
-
       await authService.cadastrarPaciente({
         nome,
         cpf: cleanMask(cpf),
         email: email.toLowerCase().trim(),
         tel_celular: cleanMask(tel),
         sexo: sexo ?? 'O',
-        dt_nascimento: dtFormatted,
+        dt_nascimento: brParaIso(dtNascimento),
         nac_estrangeira: nacEstrangeira,
         id_genero: idGenero ?? undefined,
         cep: cleanMask(cep),
@@ -206,20 +202,17 @@ export function CadastroPacienteScreen() {
                   error={errors.tel}
                 />
               </View>
-              <InputField
-                label="Data de nascimento"
-                placeholder="dd/mm/aaaa"
-                value={dtNascimento}
-                onChangeText={(t) => {
-                  const d = t.replace(/\D/g, '').slice(0, 8);
-                  let fmt = d;
-                  if (d.length > 4) fmt = `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
-                  else if (d.length > 2) fmt = `${d.slice(0, 2)}/${d.slice(2)}`;
-                  setDtNascimento(fmt);
-                }}
-                keyboardType="numeric"
-                maxLength={10}
-              />
+              <View onLayout={registrar('dtNascimento')}>
+                <InputField
+                  label="Data de nascimento"
+                  placeholder="dd/mm/aaaa"
+                  value={dtNascimento}
+                  onChangeText={(t) => setDtNascimento(maskDataBr(t))}
+                  keyboardType="numeric"
+                  maxLength={10}
+                  error={errors.dtNascimento}
+                />
+              </View>
 
               <SegmentedControl label="Sexo" options={SEXO_OPCOES} value={sexo} onChange={setSexo} />
 

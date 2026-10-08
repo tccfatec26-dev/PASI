@@ -18,8 +18,7 @@ import { RadioList } from '../../components/RadioList';
 import { Checkbox } from '../../components/Checkbox';
 import { usePaginatedList } from '../../hooks/usePaginatedList';
 import { colors } from '../../constants/colors';
-import { formatData } from '../../utils/format';
-import { brParaIsoInicioDia, brParaIsoFimDia } from '../../utils/date';
+import { formatData, brParaIsoInicioDia, brParaIsoFimDia } from '../../utils/date';
 import { mensagemErroApi } from '../../utils/errors';
 
 type OrdenarPor = NonNullable<FiltrosFormulario['ordenar_por']>;

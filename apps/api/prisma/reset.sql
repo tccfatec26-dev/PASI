@@ -3,10 +3,28 @@
 -- Apaga todos os dados de transação e mantém:
 --   • Tabelas de domínio (tipos, situações, unidades, etc.)
 --   • Apenas os formulários 2 (Triagem Socioeconômica) e 6 (SCARED)
---   • Apenas os dois usuários abaixo
+--   • Apenas os usuários listados em usuarios_mantidos (passo 0)
+--
+-- ANTES DE RODAR: troque os e-mails do passo 0 pelos usuários que devem
+-- continuar no banco. Se algum deles não existir, o script aborta sem apagar nada.
 -- =============================================================
 
 BEGIN;
+
+-- 0. Usuários que serão mantidos — EDITE AQUI
+CREATE TEMP TABLE usuarios_mantidos (email VARCHAR(50)) ON COMMIT DROP;
+INSERT INTO usuarios_mantidos (email) VALUES
+    ('profissional@exemplo.com'),
+    ('paciente@exemplo.com');
+
+-- Trava: sem isso, e-mails errados apagariam TODOS os usuários.
+DO $$
+BEGIN
+    IF (SELECT COUNT(*) FROM usuario u JOIN usuarios_mantidos m ON m.email = u.email)
+       <> (SELECT COUNT(*) FROM usuarios_mantidos) THEN
+        RAISE EXCEPTION 'Algum e-mail de usuarios_mantidos não existe no banco. Nada foi apagado.';
+    END IF;
+END $$;
 
 -- 1. Logs e documentos (sem dependentes)
 DELETE FROM log_respostas;
@@ -38,9 +56,9 @@ DELETE FROM formulario WHERE id_formulario NOT IN (2, 6);
 --    (evita violação de FK ao excluir usuários)
 UPDATE pergunta SET id_usuario_cad = NULL;
 
--- 8. Excluir todos os usuários exceto os dois mantidos
+-- 8. Excluir todos os usuários exceto os mantidos
 DELETE FROM usuario
-WHERE email NOT IN ('fhector7@gmail.com', 'maria@email.com');
+WHERE email NOT IN (SELECT email FROM usuarios_mantidos);
 
 COMMIT;
 

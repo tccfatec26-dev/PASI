@@ -15,8 +15,8 @@ import { useFeedback } from '../../context/FeedbackContext';
 import { usePaginatedList } from '../../hooks/usePaginatedList';
 import { SituacaoAtendimento, SITUACOES_ATENDIMENTO_OPCOES } from '../../constants/dominio';
 import { colors } from '../../constants/colors';
-import { formatProtocolo, formatData } from '../../utils/format';
-import { brParaIsoInicioDia, brParaIsoFimDia } from '../../utils/date';
+import { formatProtocolo } from '../../utils/format';
+import { formatData, brParaIsoInicioDia, brParaIsoFimDia } from '../../utils/date';
 import { mensagemErroApi } from '../../utils/errors';
 
 type OrdenarPor = NonNullable<FiltrosAtendimento['ordenar_por']>;

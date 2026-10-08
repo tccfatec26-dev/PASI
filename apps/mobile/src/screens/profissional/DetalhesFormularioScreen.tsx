@@ -15,7 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFeedback } from '../../context/FeedbackContext';
 import { TipoPergunta, TIPOS_COM_OPCOES } from '../../constants/dominio';
 import { colors } from '../../constants/colors';
-import { formatData } from '../../utils/format';
+import { formatData } from '../../utils/date';
 
 type RouteT = RouteProp<ProfissionalStackParamList, 'DetalhesFormulario'>;
 
