@@ -1,0 +1,278 @@
+/* =========================================
+   PARA QUEM É (Audience, variação A: abas)
+========================================= */
+
+.publicos {
+  padding: 110px 0;
+  background: var(--White);
+}
+
+.publicos-header {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* abas (SegmentedControl) */
+
+.publicos-abas {
+  width: fit-content;
+  margin: 36px auto 0;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--Softblue-2);
+  transition-delay: 0.1s;
+}
+
+.publicos-abas button {
+  min-height: var(--size-touch-min);
+  padding: 0 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--Text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.publicos-abas button.is-selected {
+  background: var(--White);
+  color: var(--Navy-600);
+  box-shadow: 0 1px 4px rgba(30, 65, 120, 0.14);
+}
+
+/* painel */
+
+.publicos-painel {
+  margin-top: 32px;
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 48px;
+  align-items: center;
+  padding: 48px 56px;
+  border-radius: var(--radius-18);
+  background: var(--Background);
+  transition-delay: 0.2s;
+}
+
+.publicos-painel[hidden] { display: none; }
+
+.publicos-texto h3 {
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--Navy-600);
+}
+
+.publicos-intro {
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--Text-muted);
+}
+
+.publicos-lista {
+  list-style: none;
+  margin: 26px 0 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.publicos-lista li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.publicos-lista li .icon-tile {
+  background: var(--White);
+  box-shadow: var(--shadow-icon);
+}
+
+.publicos-lista li div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.publicos-lista strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--Navy-500);
+}
+
+.publicos-lista li div span {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--Text-muted);
+}
+
+/* prancheta ilustrativa: formulário lúdico, não um mockup de tela de app */
+
+.publicos-visual {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.publicos-visual::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  background: var(--Softblue-cta);
+  transform: translate(-50%, -50%);
+}
+
+.publicos-visual::after {
+  content: "";
+  position: absolute;
+  top: 8%;
+  right: 8%;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--Line);
+}
+
+.publicos-prancheta {
+  position: relative;
+  width: 240px;
+  min-height: 420px;
+  padding: 36px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: var(--radius-18);
+  background: var(--White);
+  box-shadow: 12px 15px 30px rgba(35, 65, 110, 0.15);
+  transform: rotate(-3deg);
+}
+
+/* clipe da prancheta, no lugar do notch de celular */
+
+.publicos-prancheta-clip {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 64px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--Navy-800);
+  transform: translateX(-50%);
+  box-shadow: 0 4px 10px rgba(16, 39, 70, 0.25);
+}
+
+.publicos-prancheta-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--Softblue-2);
+}
+
+.publicos-prancheta-chip-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--Blue);
+}
+
+.publicos-prancheta-chip-bar {
+  width: 54px;
+  height: 6px;
+  border-radius: 4px;
+  background: var(--Line);
+}
+
+.publicos-prancheta-logo {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--Blue);
+}
+
+.publicos-prancheta strong {
+  margin: 2px 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--Navy-800);
+}
+
+.publicos-prancheta-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.publicos-prancheta-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--Softblue-2);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--Navy-600);
+}
+
+.publicos-prancheta-item i {
+  font-size: 13px;
+  color: var(--Action);
+}
+
+.publicos-prancheta-botao {
+  margin-top: auto;
+  padding: 11px;
+  border-radius: var(--radius-10);
+  background: var(--Action);
+  color: var(--White);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 950px) {
+  .publicos-painel {
+    grid-template-columns: 1fr;
+    padding: 40px 32px;
+  }
+
+  .publicos-visual { display: none; }
+}
+
+@media (max-width: 800px) {
+  .publicos { padding: 72px 0; }
+
+  .publicos-header { text-align: left; }
+
+  .publicos-abas {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .publicos-abas button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .publicos-painel { padding: 32px 22px; }
+
+  .publicos-painel .btn { width: 100%; white-space: normal; }
+}

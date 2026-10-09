@@ -1,0 +1,15 @@
+pontos de validação:
+
+para ambos os cenários abaixo, é necessário criar formulários, para poder criar atendimentos. Esses endpoints já foram validados e barram o acesso do usuário paciente.
+
+/api/atendimentos - verificar se paciente consegue ver outros atendimentos. Ele deve ver apenas o seu.
+
+/api/atendimentos/{id} - verificar se paciente consegue acessar outros atendimentos que não seja o seu.
+
+/api/formulários/{id} - permite edição APENAS de nome, descrição e tipo de formulário. Não é possível editar as perguntas, mesmo que não haja resposta alguma vinculada a ela.
+
+'DELETE' \  'http://localhost:3000/api/formularios/2/perguntas/10' - permite a exclusão física da pergunta. Manter assim por ora e futuramente, criar funcionalidade de recuperação da lixeira? Apenas desativando a pergunta para recuperação?
+
+devemos logar quando o atendimento for criado automaticamente ao criar o usuário paciente, para informar que, o atendimento foi criado pelo sistema, não por um usuário profissional.
+
+Mudança na stack: inclusão de NativeWind para o front-end

@@ -1,0 +1,784 @@
+/* =========================================
+   COMO FUNCIONA
+========================================= */
+
+.como-funciona {
+  position: relative;
+
+  width: 100%;
+
+  overflow: hidden;
+
+  background: #f8faff;
+
+  padding: 120px 0 100px;
+}
+
+
+/* =========================================
+   CABEÇALHO
+========================================= */
+
+.como-funciona-header {
+  width: min(850px, 90%);
+
+  margin: 0 auto;
+
+  text-align: center;
+
+  opacity: 0;
+  transform: translateY(35px);
+
+  transition:
+    opacity 0.8s ease,
+    transform 0.8s ease;
+}
+
+.como-funciona-visible .como-funciona-header {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+/* título */
+
+.como-funciona-header h2 {
+  margin-top: 22px;
+
+  font-family: "Montserrat", sans-serif;
+
+  font-size: clamp(40px, 5vw, 62px);
+
+  line-height: 1.05;
+
+  letter-spacing: -2px;
+
+  font-weight: 700;
+
+  color: #172d50;
+}
+
+.como-funciona-header h2 span {
+  color: #4081ed;
+}
+
+
+/* descrição */
+
+.como-funciona-header p {
+  margin-top: 18px;
+
+  font-family: "Montserrat", sans-serif;
+
+  font-size: 15px;
+
+  line-height: 1.6;
+
+  color: #7c879b;
+}
+
+
+/* =========================================
+   ETAPAS
+========================================= */
+
+.etapas-container {
+  position: relative;
+
+  width: min(1160px, 90%);
+
+  margin: 105px auto 0;
+
+  list-style: none;
+
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 22px;
+}
+
+.etapas-linha-2 {
+  margin-top: 70px;
+}
+
+
+/* =========================================
+   LINHA
+========================================= */
+
+.etapas-line {
+  position: absolute;
+
+  left: 16%;
+  right: 16%;
+
+  top: 31px;
+
+  height: 2px;
+
+  background: #dce8fb;
+
+  z-index: 0;
+}
+
+.etapas-line-progress {
+  width: 0;
+
+  height: 100%;
+
+  background: #4081ed;
+
+  transition: width 2s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.como-funciona-visible .etapas-line-progress {
+  width: 100%;
+}
+
+.como-funciona-visible .etapas-linha-2 .etapas-line-progress {
+  transition-delay: 1.2s;
+}
+
+
+/* =========================================
+   ETAPA
+========================================= */
+
+.etapa {
+  position: relative;
+
+  min-height: 0;
+
+  padding: 0 15px;
+
+  opacity: 0;
+
+  transform: translateY(55px);
+
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease;
+}
+
+
+/* animação individual */
+
+.como-funciona-visible .etapa {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.como-funciona-visible .etapa-1 { transition-delay: 0.2s; }
+.como-funciona-visible .etapa-2 { transition-delay: 0.45s; }
+.como-funciona-visible .etapa-3 { transition-delay: 0.7s; }
+.como-funciona-visible .etapa-4 { transition-delay: 0.95s; }
+.como-funciona-visible .etapa-5 { transition-delay: 1.2s; }
+.como-funciona-visible .etapa-6 { transition-delay: 1.45s; }
+
+
+/* =========================================
+   NÚMERO GIGANTE
+========================================= */
+
+.numero-fundo {
+  position: absolute;
+
+  top: -45px;
+  right: 10px;
+
+  font-family: "Montserrat", sans-serif;
+
+  font-size: 145px;
+
+  line-height: 1;
+
+  font-weight: 700;
+
+  color: #edf3fc;
+
+  z-index: 0;
+
+  pointer-events: none;
+}
+
+
+/* =========================================
+   ÍCONE
+========================================= */
+
+.etapa-icon {
+  position: relative;
+
+  z-index: 2;
+
+  width: 62px;
+  height: 62px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0 auto 30px;
+
+  border-radius: 17px;
+
+  background: #edf4ff;
+
+  color: #4081ed;
+
+  font-size: 22px;
+
+  box-shadow: 0 5px 20px rgba(64, 129, 237, 0.08);
+
+  transition:
+    transform 0.3s ease,
+    background 0.3s ease;
+}
+
+.etapa:hover .etapa-icon {
+  transform: translateY(-5px) rotate(-3deg);
+
+  background: #4081ed;
+
+  color: white;
+}
+
+
+/* =========================================
+   CONTEÚDO
+========================================= */
+
+.etapa-content {
+  position: relative;
+
+  z-index: 2;
+
+  padding: 28px 25px;
+
+  background: rgba(255, 255, 255, 0.92);
+
+  border: 1px solid #e5edf9;
+
+  border-radius: 18px;
+
+  min-height: 250px;
+
+  box-shadow: 0 10px 30px rgba(40, 75, 130, 0.045);
+
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.etapa:hover .etapa-content {
+  transform: translateY(-5px);
+
+  box-shadow: 0 15px 35px rgba(40, 75, 130, 0.08);
+}
+
+
+/* número */
+
+.etapa-numero {
+  display: block;
+
+  margin-bottom: 10px;
+
+  font-family: "Montserrat", sans-serif;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  color: #4081ed;
+}
+
+
+/* título */
+
+.etapa-content h3 {
+  margin: 0;
+
+  font-family: "Montserrat", sans-serif;
+
+  font-size: 19px;
+
+  line-height: 1.2;
+
+  font-weight: 700;
+
+  color: #20385f;
+}
+
+
+/* texto */
+
+.etapa-content p {
+  margin-top: 13px;
+
+  font-family: "Montserrat", sans-serif;
+
+  font-size: 13px;
+
+  line-height: 1.65;
+
+  color: var(--Text-muted);
+}
+
+
+/* detalhe */
+
+.etapa-detalhe {
+  display: inline-flex;
+
+  margin-top: 22px;
+
+  padding: 8px 13px;
+
+  border-radius: 20px;
+
+  background: #edf4ff;
+
+  color: #4081ed;
+
+  font-family: "Montserrat", sans-serif;
+
+  font-size: 11px;
+
+  font-weight: 600;
+}
+
+
+/* =========================================
+   FEATURES
+========================================= */
+
+.como-funciona-features {
+  width: min(1000px, 88%);
+
+  margin: 80px auto 0;
+
+  display: grid;
+
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 40px;
+
+  opacity: 0;
+
+  transform: translateY(30px);
+
+  transition:
+    opacity 0.8s ease,
+    transform 0.8s ease;
+
+  transition-delay: 1.7s;
+}
+
+.como-funciona-visible .como-funciona-features {
+  opacity: 1;
+
+  transform: translateY(0);
+}
+
+
+/* feature */
+
+.feature {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 12px;
+}
+
+
+/* ícone */
+
+.feature-icon {
+  width: 43px;
+  height: 43px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: #edf4ff;
+
+  color: #4081ed;
+
+  font-size: 16px;
+}
+
+
+/* texto */
+
+.feature div:last-child {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 3px;
+}
+
+.feature strong {
+  font-family: "Montserrat", sans-serif;
+
+  font-size: 13px;
+
+  font-weight: 700;
+
+  color: #263e64;
+}
+
+.feature span {
+  font-family: "Montserrat", sans-serif;
+
+  font-size: 12px;
+
+  color: var(--Text-muted);
+}
+
+
+/* =========================================
+   TABLET: grade 2×3 sem a linha
+========================================= */
+
+@media (max-width: 950px) {
+
+  .etapas {
+    width: min(1160px, 90%);
+
+    margin: 105px auto 0;
+
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 50px 20px;
+  }
+
+  .etapas-container {
+    display: contents;
+  }
+
+  .etapas-line {
+    display: none;
+  }
+
+  .como-funciona-features {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+}
+
+
+/* =========================================
+   MOBILE: lista vertical com a linha na lateral
+========================================= */
+
+@media (max-width: 650px) {
+
+  .como-funciona {
+    padding-top: 80px;
+  }
+
+  .como-funciona-header {
+    text-align: left;
+  }
+
+  .como-funciona-header h2 {
+    font-size: 38px;
+
+    letter-spacing: -1px;
+  }
+
+  .como-funciona-header p br {
+    display: none;
+  }
+
+  .como-funciona-header p {
+    font-size: 14px;
+  }
+
+  .etapas {
+    position: relative;
+
+    grid-template-columns: 1fr;
+
+    gap: 24px;
+
+    margin-top: 55px;
+  }
+
+  .etapas::before {
+    content: "";
+
+    position: absolute;
+
+    top: 20px;
+    bottom: 20px;
+    left: 25px;
+
+    width: 2px;
+
+    background: var(--Line);
+  }
+
+  .etapa {
+    display: grid;
+
+    grid-template-columns: 52px 1fr;
+
+    gap: 14px;
+
+    align-items: start;
+
+    padding: 0;
+  }
+
+  .etapa-icon {
+    width: 52px;
+    height: 52px;
+
+    margin: 0;
+
+    border-radius: 15px;
+
+    font-size: 18px;
+  }
+
+  .etapa-content {
+    min-height: 0;
+
+    padding: 22px 20px;
+  }
+
+  .numero-fundo {
+    display: none;
+  }
+
+  .como-funciona-features {
+    grid-template-columns: 1fr 1fr;
+
+    gap: 25px 15px;
+
+    margin-top: 65px;
+  }
+
+  .feature {
+    justify-content: flex-start;
+  }
+
+  .feature-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .feature strong {
+    font-size: 13px;
+  }
+
+  .feature span {
+    font-size: 12px;
+  }
+
+}
+
+.etapas-interativo {
+  width: min(1160px, 90%);
+  margin: 76px auto 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+  gap: 44px;
+  align-items: stretch;
+}
+
+.etapas-navegacao ol {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.etapas-navegacao button {
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #526078;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.25s ease, background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.etapas-navegacao button:hover {
+  background: rgba(255, 255, 255, 0.72);
+  color: #20385f;
+  transform: translateX(3px);
+}
+
+.etapas-navegacao button.is-active {
+  border-color: #e5edf9;
+  background: #fff;
+  color: #20385f;
+  box-shadow: 0 8px 24px rgba(40, 75, 130, 0.07);
+}
+
+.etapa-botao-numero {
+  font-size: 12px;
+  font-weight: 700;
+  color: #4081ed;
+}
+
+.etapa-botao-titulo {
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.etapas-navegacao button > i {
+  font-size: 12px;
+  color: #7b8495;
+  transition: transform 0.25s ease, color 0.25s ease;
+}
+
+.etapas-navegacao button.is-active > i {
+  color: #4081ed;
+  transform: translateX(3px);
+}
+
+.etapa-painel {
+  min-height: 430px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border-radius: 12px;
+  background: #172d50;
+  color: #fff;
+  animation: etapa-entrada 0.35s ease both;
+}
+
+.etapa-painel-cabecalho {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.etapa-painel-icone {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #4081ed;
+  color: #fff;
+  font-size: 21px;
+}
+
+.etapa-painel-detalhe {
+  color: #a9c8ff;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.etapa-painel-numero {
+  margin-top: 36px;
+  color: #a9c8ff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.etapa-painel h3 {
+  margin-top: 10px;
+  font-size: 27px;
+  line-height: 1.25;
+  color: #fff;
+}
+
+.etapa-painel > p {
+  max-width: 520px;
+  margin-top: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.etapa-painel-progresso {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 30px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.etapa-painel-trilho {
+  height: 4px;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.etapa-painel-trilho > span {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: #85c48f;
+  transition: width 0.35s ease;
+}
+
+@keyframes etapa-entrada {
+  from { opacity: 0.5; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+  .etapas-interativo {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .etapas-navegacao ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .etapa-painel { min-height: 340px; }
+}
+
+@media (max-width: 600px) {
+  .etapas-interativo { width: 90%; margin-top: 42px; }
+  .etapas-navegacao ol { grid-template-columns: 1fr; }
+  .etapas-navegacao button { min-height: 56px; }
+  .etapa-painel { min-height: 340px; padding: 26px; }
+  .etapa-painel-numero { margin-top: 28px; }
+  .etapa-painel h3 { font-size: 23px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .etapas-navegacao button,
+  .etapas-navegacao button > i,
+  .etapa-painel,
+  .etapa-painel-trilho > span {
+    animation: none;
+    transition: none;
+  }
+}

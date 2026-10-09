@@ -1,0 +1,257 @@
+/* =========================================
+   SEGURANÇA
+========================================= */
+
+.seguranca {
+  padding: 110px 0;
+  background: var(--White);
+}
+
+.seguranca-header {
+  max-width: 640px;
+}
+
+.seguranca-grid {
+  margin-top: 56px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+
+/* texto: níveis de acesso, como lista leve (sem cards pesados) */
+
+.seguranca-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 460px;
+}
+
+.seguranca-subtitulo {
+  margin-bottom: 18px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--Text-muted);
+  margin-top: 25px;
+}
+
+.seguranca-lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.seguranca-lista li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.seguranca-lista li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.seguranca-lista strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--Navy-700);
+}
+
+.seguranca-lista li > div span {
+  font-size: 13px;
+  color: var(--Text-muted);
+}
+
+.seguranca-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  border-left: 3px solid var(--Success);
+  border-radius: 0 var(--radius-10) var(--radius-10) 0;
+  background: var(--Background);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--Text-muted);
+}
+
+.seguranca-nota i {
+  margin-top: 2px;
+  color: var(--Success);
+}
+
+/* visual: núcleo de segurança com cartões flutuando ao redor, conectados por linhas */
+
+.seguranca-visual {
+  position: relative;
+  width: 480px;
+  max-width: 100%;
+  height: 440px;
+  margin: 0 auto;
+}
+
+.seguranca-anel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: 1.5px dashed var(--Line);
+  transform: translate(-50%, -50%);
+}
+
+.seguranca-anel-1 {
+  width: 220px;
+  height: 220px;
+  animation: seguranca-girar 44s linear infinite;
+}
+
+.seguranca-anel-2 {
+  width: 310px;
+  height: 310px;
+  border-color: var(--Border-card);
+  animation: seguranca-girar 64s linear infinite reverse;
+}
+
+.seguranca-linhas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.seguranca-linhas path {
+  fill: none;
+  stroke: var(--Line);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 5 7;
+  animation: seguranca-fluxo 3.5s linear infinite;
+}
+
+.seguranca-nucleo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 84px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--Action);
+  color: var(--White);
+  font-size: 30px;
+  transform: translate(-50%, -50%);
+  animation: seguranca-respirar 3.4s ease-in-out infinite;
+}
+
+.seguranca-card {
+  position: absolute;
+  width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: var(--radius-17);
+  background: var(--White);
+  box-shadow: var(--shadow-card);
+  animation: seguranca-flutuar 5s ease-in-out infinite;
+}
+
+.seguranca-card::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.seguranca-card-1::after { background: #f2b544; }
+.seguranca-card-2::after { background: var(--Blue); }
+.seguranca-card-3::after { background: var(--Green); }
+
+.seguranca-card-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-10);
+  background: var(--Softblue-2);
+  color: var(--Blue);
+  font-size: 14px;
+}
+
+.seguranca-card strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--Navy-700);
+}
+
+.seguranca-card span {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--Text-muted);
+}
+
+.seguranca-card-1 {
+  top: 0;
+  left: 10px;
+  animation-delay: 0s;
+}
+
+.seguranca-card-2 {
+  top: 150px;
+  right: -10px;
+  animation-delay: 0.9s;
+}
+
+.seguranca-card-3 {
+  bottom: 0;
+  left: 50px;
+  animation-delay: 1.8s;
+}
+
+@keyframes seguranca-girar {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes seguranca-fluxo {
+  to { stroke-dashoffset: -24; }
+}
+
+@keyframes seguranca-respirar {
+  0%, 100% { box-shadow: 0 12px 30px rgba(47, 112, 223, 0.3); }
+  50% { box-shadow: 0 12px 42px rgba(47, 112, 223, 0.5); }
+}
+
+@keyframes seguranca-flutuar {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seguranca-anel,
+  .seguranca-nucleo,
+  .seguranca-card,
+  .seguranca-linhas path {
+    animation: none;
+  }
+}
+
+@media (max-width: 950px) {
+  .seguranca-grid { grid-template-columns: 1fr; }
+  .seguranca-visual { display: none; }
+}
+
+@media (max-width: 800px) {
+  .seguranca { padding: 72px 0; }
+}

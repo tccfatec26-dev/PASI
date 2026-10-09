@@ -1,0 +1,51 @@
+# Blueprint do Render — https://render.com/docs/blueprint-spec
+services:
+  # Landing page (site estático, plano gratuito)
+  - type: web
+    name: pasi-landing-page
+    runtime: static
+    rootDir: landing-page
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    # Só refaz o deploy quando algo da landing page mudar
+    buildFilter:
+      paths:
+        - landing-page/**
+    envVars:
+      # Vite 8 exige Node 20.19+ / 22.12+
+      - key: NODE_VERSION
+        value: "22"
+      # E-mail exibido na seção de contato (definido no painel do Render)
+      - key: VITE_CONTACT_EMAIL
+        sync: false
+
+  # API NestJS (plano gratuito: hiberna após ~15 min sem acesso e o disco
+  # é efêmero — arquivos em uploads/ somem a cada deploy/reinício)
+  - type: web
+    name: pasi-api
+    runtime: node
+    plan: free
+    # Raiz do monorepo: o package-lock.json dos workspaces fica aqui
+    buildCommand: npm ci --workspace apps/api && npm run prisma:generate --workspace apps/api && npm run api:build
+    startCommand: npm run api:start
+    healthCheckPath: /api/health
+    buildFilter:
+      paths:
+        - apps/api/**
+        - package.json
+        - package-lock.json
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Strings do Neon: "pooled" em DATABASE_URL e a direta em DIRECT_URL
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      # Base do link de redefinição de senha
+      - key: APP_URL
+        sync: false

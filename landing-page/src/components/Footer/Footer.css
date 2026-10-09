@@ -1,0 +1,122 @@
+/* =========================================
+   FOOTER (variação A: completo)
+========================================= */
+
+.footer {
+  padding: 72px 0 28px;
+  background: var(--Navy);
+  color: var(--White);
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+  gap: 40px;
+}
+
+.footer-marca img {
+  width: 120px;
+  height: auto;
+  display: block;
+}
+
+.footer-marca p {
+  max-width: 300px;
+  margin-top: 18px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--On-dark-78);
+}
+
+.footer-servicos {
+  display: inline-flex;
+  margin-top: 18px;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.footer h2 {
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--White);
+}
+
+.footer nav a {
+  display: block;
+  padding: 7px 0;
+  font-size: 14px;
+  color: var(--On-dark-86);
+  transition: color 0.2s ease;
+}
+
+.footer nav a:hover { color: var(--Info-on-dark); }
+
+.footer a:focus-visible { outline-color: var(--Focus-on-dark); }
+
+.footer-equipe ul { list-style: none; }
+
+.footer-equipe li {
+  padding: 7px 0;
+  font-size: 14px;
+  color: var(--On-dark-86);
+}
+
+.footer-equipe p {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--On-dark-70);
+}
+
+.footer-base {
+  margin-top: 48px;
+  padding-top: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--On-dark-78);
+}
+
+.footer-topo {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--size-touch-min);
+  font-weight: 600;
+  color: var(--White);
+}
+
+@media (max-width: 950px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 550px) {
+  .footer { padding-top: 56px; }
+
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px 20px;
+  }
+
+  .footer-marca,
+  .footer-equipe { grid-column: 1 / -1; }
+
+  .footer nav a { padding: 12px 0; }
+
+  .footer-base {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

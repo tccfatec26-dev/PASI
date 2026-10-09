@@ -1,0 +1,392 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+/* Smooth Circulars PASI: a Smooth Circulars original com os acentos do português,
+   gerada por scripts/build-font.py. */
+@font-face {
+  font-family: "Smooth Circulars";
+  src: url("/fonts/SmoothCircularsPASI.woff2") format("woff2"),
+       url("/fonts/SmoothCircularsPASI.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* =========================================
+   TOKENS (design system PASI)
+========================================= */
+
+:root {
+  --font-display: "Smooth Circulars", "Montserrat", sans-serif;
+  --font-sans: "Montserrat", sans-serif;
+
+  --Blue: #4081ed;
+  --Blue-hover: #2f70df;
+  --Blue-strong: #0874db;
+  --Navy: #172944;
+  --Navy-900: #102746;
+  --Navy-800: #172d50;
+  --Navy-700: #1d365d;
+  --Navy-600: #20385f;
+  --Navy-500: #263e64;
+  --Slate: #3d5788;
+  --Ink: #111111;
+  --Text-muted: #526078;
+  --Text-intro: #7b8495;
+  --White: #ffffff;
+  --On-dark-86: rgba(255, 255, 255, 0.86);
+  --On-dark-78: rgba(255, 255, 255, 0.78);
+  --On-dark-70: rgba(255, 255, 255, 0.7);
+  --Background: #f8faff;
+  --Background-page: #f7f9fd;
+  --Softblue: #e9f1ff;
+  --Softblue-2: #edf4ff;
+  --Softblue-cta: #e7f0ff;
+  --Softblue-label: #d7e8ff;
+  --Numeral: #edf3fc;
+  --Line: #dce8fb;
+  --Border-card: #e5edf9;
+  --Border-control: #dce6f5;
+  --Coral: #ff6265;
+  --Green: #85c48f;
+  --Action: #2f70df;
+  --Action-hover: #1d5fcf;
+  --Action-pressed: #174ea8;
+  --Link: #1d5fcf;
+  --Focus: #0874db;
+  --Focus-on-dark: #ffffff;
+  --Error: #c42b33;
+  --Success: #256b42;
+  --Info-on-dark: #a9c8ff;
+  --Disabled-bg: #eef2f8;
+
+  --radius-10: 10px;
+  --radius-11: 11px;
+  --radius-17: 17px;
+  --radius-18: 18px;
+  --radius-pill: 20px;
+
+  --shadow-card: 0 10px 30px rgba(40, 75, 130, 0.045);
+  --shadow-card-hover: 0 15px 35px rgba(40, 75, 130, 0.08);
+  --shadow-icon: 0 5px 20px rgba(64, 129, 237, 0.08);
+
+  --size-container: 1170px;
+  --size-touch-min: 44px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; scroll-padding-top: 80px; overflow-x: hidden; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--Background-page);
+  color: var(--Ink);
+  overflow-x: hidden;
+  /* texto continua selecionável, só não mostra o cursor de "campo editável" ao passar o mouse */
+  cursor: default;
+  /* esconde o traço piscando (caret) que aparece ao clicar no texto, incluindo em modo
+     de navegação por cursor do navegador; a seleção de texto continua funcionando normalmente */
+  caret-color: transparent;
+}
+
+a { text-decoration: none; color: inherit; }
+
+button { font: inherit; }
+
+:focus-visible {
+  outline: 3px solid var(--Focus);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  top: -60px;
+  left: 16px;
+  z-index: 1000;
+  padding: 12px 18px;
+  border-radius: var(--radius-10);
+  background: var(--White);
+  color: var(--Link);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.skip-link:focus { top: 16px; }
+
+.home {
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--Background-page);
+}
+
+.visual-stage {
+  position: relative;
+  isolation: isolate;
+  background: var(--Background);
+}
+
+.visual-stage-video,
+.visual-stage-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: calc(100vh + 48px);
+  pointer-events: none;
+}
+
+.visual-stage-video {
+  z-index: 0;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.visual-stage-overlay {
+  z-index: 1;
+  background: linear-gradient(90deg, rgba(10, 31, 51, 0.9) 0%, rgba(10, 31, 51, 0.64) 52%, rgba(10, 31, 51, 0.3) 100%), linear-gradient(180deg, rgba(10, 31, 51, 0.15) 0%, rgba(10, 31, 51, 0.48) 100%);
+}
+
+.visual-stage > .hero,
+.visual-stage > .desafio {
+  position: relative;
+  z-index: 2;
+}
+
+.video-toggle {
+  position: absolute;
+  z-index: 3;
+  top: calc(100vh - 150px);
+  right: 5%;
+  width: var(--size-touch-min);
+  height: var(--size-touch-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--On-dark-70);
+  border-radius: 50%;
+  background: rgba(10, 31, 51, 0.35);
+  color: var(--White);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.video-toggle:hover { background: rgba(255, 255, 255, 0.12); }
+.video-toggle:focus-visible { outline-color: var(--Focus-on-dark); }
+
+
+/* =========================================
+   PADRÕES COMPARTILHADOS
+========================================= */
+
+.container {
+  width: min(var(--size-container), 90%);
+  margin: 0 auto;
+}
+
+/* etiqueta de seção */
+
+.section-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 18px;
+  border-radius: var(--radius-pill);
+  background: var(--Softblue);
+  color: var(--Link);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.section-tag.on-dark {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--White);
+}
+
+/* títulos de seção: Smooth Circulars (marca) ou Montserrat Bold (produto) */
+
+.section-display {
+  margin-top: 22px;
+  font-family: var(--font-display);
+  font-size: clamp(31px, 3vw, 43px);
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: -0.7px;
+  color: var(--Navy);
+}
+
+.section-headline {
+  margin-top: 22px;
+  font-family: var(--font-sans);
+  font-size: clamp(32px, 3.6vw, 46px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -1.4px;
+  color: var(--Navy-800);
+}
+
+.section-display span,
+.section-headline span { color: var(--Blue); }
+
+.section-lead {
+  margin-top: 16px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--Text-muted);
+}
+
+/* ação de texto: "Conheça o projeto →" */
+
+.text-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--size-touch-min);
+  color: var(--Link);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.text-action i { transition: transform 0.2s ease; }
+.text-action:hover i { transform: translateX(3px); }
+
+/* botões do design system */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 24px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-10);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.btn-primary { background: var(--Action); color: var(--White); }
+.btn-primary:hover { background: var(--Action-hover); transform: translateY(-1px); }
+.btn-primary:active { background: var(--Action-pressed); transform: none; }
+
+.btn-secondary { background: var(--White); color: var(--Link); border-color: var(--Link); }
+.btn-secondary:hover { background: var(--Softblue); transform: translateY(-1px); }
+
+.btn-on-dark { background: var(--White); color: var(--Link); }
+.btn-on-dark:hover { background: var(--Softblue); transform: translateY(-1px); }
+
+.btn-ghost-on-dark { background: transparent; color: var(--White); border-color: var(--On-dark-70); }
+.btn-ghost-on-dark:hover { background: rgba(255, 255, 255, 0.12); }
+
+/* ícone em quadrado arredondado */
+
+.icon-tile {
+  width: 43px;
+  height: 43px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-11);
+  background: var(--Softblue-2);
+  color: var(--Blue);
+  font-size: 16px;
+}
+
+/* revelação ao rolar (useReveal) */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(35px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.is-visible .reveal,
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (max-width: 800px) {
+  .section-display,
+  .section-headline { letter-spacing: -0.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal,
+  .como-funciona-header,
+  .etapa,
+  .como-funciona-features {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* o header é fixo: reserva o espaço dele no topo do palco do vídeo */
+.visual-stage { padding-top: 95px; }
+
+@media (max-width: 800px) {
+  .visual-stage { padding-top: 72px; }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* =========================================
+   MENU DE ACESSIBILIDADE (classes aplicadas no <html>)
+========================================= */
+
+html.a11y-font-1 { zoom: 1.12; }
+html.a11y-font-2 { zoom: 1.25; }
+
+html.a11y-pb {
+  filter: grayscale(1);
+}
+
+/* alto contraste: fundo preto e texto amarelo em tudo, independente de como cada
+   elemento foi estilizado (cores soltas em hex ou variáveis) */
+html.a11y-contraste,
+html.a11y-contraste body {
+  background: #000 !important;
+}
+
+html.a11y-contraste * {
+  background-color: #000 !important;
+  background-image: none !important;
+  color: #ffeb3b !important;
+  border-color: #ffeb3b !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html.a11y-contraste a,
+html.a11y-contraste button {
+  color: #00e5ff !important;
+}
+
+html.a11y-contraste img,
+html.a11y-contraste video {
+  filter: grayscale(1) contrast(1.2);
+}
