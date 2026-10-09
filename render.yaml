@@ -1,0 +1,20 @@
+# Blueprint do Render — https://render.com/docs/blueprint-spec
+services:
+  # Landing page (site estático, plano gratuito)
+  - type: web
+    name: pasi-landing-page
+    runtime: static
+    rootDir: landing-page
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    # Só refaz o deploy quando algo da landing page mudar
+    buildFilter:
+      paths:
+        - landing-page/**
+    envVars:
+      # Vite 8 exige Node 20.19+ / 22.12+
+      - key: NODE_VERSION
+        value: "22"
+      # E-mail exibido na seção de contato (definido no painel do Render)
+      - key: VITE_CONTACT_EMAIL
+        sync: false

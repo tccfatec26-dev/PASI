@@ -4,7 +4,7 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/-Landing_Page_PASI/',
+  base: '/',
   server: {
     host: '0.0.0.0',
   },
