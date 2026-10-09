@@ -1,0 +1,622 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+
+/* =========================
+   FONTE DO TÍTULO
+========================= */
+
+@font-face {
+  font-family: "Smooth Circulars";
+  src: url("/fonts/SmoothCirculars.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+
+/* =========================
+   RESET
+========================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Montserrat", sans-serif;
+  background: #f7f9fd;
+  color: #111;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+
+/* =========================
+   HOME
+========================= */
+
+.home {
+  min-height: 100vh;
+  overflow: hidden;
+  background: #f7f9fd;
+}
+
+
+/* =========================
+   HEADER
+========================= */
+
+.header {
+  width: 100%;
+  position: relative;
+  z-index: 10;
+}
+
+.header-content {
+  width: min(1170px, 90%);
+  height: 95px;
+
+  margin: 0 auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+
+/* LOGO */
+
+.logo {
+  width: 132px;
+  display: flex;
+  align-items: center;
+}
+
+.logo img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+
+/* =========================
+   NAVEGAÇÃO
+========================= */
+
+.navigation {
+  display: flex;
+  align-items: center;
+  gap: 42px;
+}
+
+.navigation a {
+  position: relative;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+
+  color: #111;
+
+  padding: 8px 0;
+}
+
+.navigation a.active {
+  color: #0568dc;
+  font-weight: 600;
+}
+
+.navigation a.active::after {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  height: 2px;
+
+  background: #0568dc;
+}
+
+
+/* =========================
+   BOTÃO DO HEADER
+========================= */
+
+.download-button {
+  font-family: "Montserrat", sans-serif;
+
+  background: #4081ed;
+  color: #fff;
+
+  padding: 12px 23px;
+
+  border-radius: 11px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  transition: 0.2s ease;
+}
+
+.download-button:hover {
+  background: #2f70df;
+  transform: translateY(-1px);
+}
+
+
+/* =========================
+   HERO
+========================= */
+
+.hero {
+  min-height: calc(100vh - 95px);
+
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding-top: 125px;
+  padding-bottom: 70px;
+}
+
+
+/* =========================
+   CÍRCULOS
+========================= */
+
+.hero-circles {
+  position: absolute;
+
+  width: 920px;
+  height: 920px;
+
+  left: 50%;
+  top: 465px;
+
+  transform: translate(-50%, -50%);
+
+  pointer-events: none;
+}
+
+.circle {
+  position: absolute;
+
+  left: 50%;
+  top: 50%;
+
+  transform: translate(-50%, -50%);
+
+  border-radius: 50%;
+
+  border: 1px solid rgba(64, 129, 237, 0.25);
+}
+
+.circle-1 {
+  width: 920px;
+  height: 920px;
+}
+
+.circle-2 {
+  width: 760px;
+  height: 760px;
+}
+
+.circle-3 {
+  width: 620px;
+  height: 620px;
+
+  background: rgba(237, 244, 253, 0.45);
+}
+
+
+/* =========================
+   CONTEÚDO CENTRAL
+========================= */
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+
+  width: min(850px, 90%);
+
+  text-align: center;
+}
+
+
+/* =========================
+   TÍTULO
+========================= */
+
+.hero h1 {
+  font-family: "Smooth Circulars", sans-serif;
+
+  font-size: clamp(38px, 4.5vw, 58px);
+
+  line-height: 1.04;
+
+  letter-spacing: -1.2px;
+
+  font-weight: 400;
+
+  color: #3d5788;
+}
+
+.hero h1 span {
+  color: #4081ed;
+}
+
+
+/* LINHA ABAIXO DO TÍTULO */
+
+.title-line {
+  width: 340px;
+  max-width: 55%;
+
+  height: 3px;
+
+  background: #4081ed;
+
+  margin: 15px auto 34px;
+}
+
+
+/* =========================
+   DESCRIÇÃO
+========================= */
+
+.hero-description {
+  max-width: 820px;
+
+  margin: 0 auto;
+
+  font-family: "Montserrat", sans-serif;
+
+  font-size: 16px;
+
+  line-height: 1.55;
+
+  font-weight: 400;
+
+  color: #151515;
+}
+
+
+/* =========================
+   BOTÕES
+========================= */
+
+.hero-buttons {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 14px;
+
+  margin-top: 40px;
+}
+
+.primary-button,
+.secondary-button {
+  min-width: 174px;
+
+  padding: 12px 20px;
+
+  border-radius: 10px;
+
+  font-family: "Montserrat", sans-serif;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  transition: 0.2s ease;
+}
+
+
+/* BOTÃO PRINCIPAL */
+
+.primary-button {
+  background: #4081ed;
+
+  color: white;
+
+  border: 1px solid #4081ed;
+}
+
+.primary-button:hover {
+  background: #2f70df;
+
+  transform: translateY(-1px);
+}
+
+
+/* BOTÃO SECUNDÁRIO */
+
+.secondary-button {
+  background: transparent;
+
+  color: #151515;
+
+  border: 1px solid #4081ed;
+}
+
+.secondary-button:hover {
+  background: white;
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================
+   CARDS
+========================= */
+
+.benefits {
+  position: relative;
+  z-index: 3;
+
+  width: min(1170px, 90%);
+
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 72px;
+
+  margin-top: 88px;
+}
+
+
+/* CARD */
+
+.benefit-card {
+  min-height: 105px;
+
+  padding: 20px 25px;
+
+  background: rgba(255, 255, 255, 0.82);
+
+  border-radius: 17px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 22px;
+}
+
+
+/* =========================
+   ÍCONES
+========================= */
+
+.benefit-icon {
+  width: 56px;
+  height: 56px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.heart {
+  background: #ff6265;
+  color: white;
+}
+
+.people {
+  background: #0874db;
+  color: white;
+}
+
+.home-icon {
+  background: #85c48f;
+  color: white;
+}
+
+
+/* =========================
+   TEXTO DOS CARDS
+========================= */
+
+.benefit-card p {
+  font-family: "Montserrat", sans-serif;
+
+  font-size: 13px;
+
+  line-height: 1.45;
+
+  color: #526078;
+}
+
+.benefit-card strong {
+  color: #3d5788;
+
+  font-weight: 700;
+}
+
+
+/* =========================
+   TABLET
+========================= */
+
+@media (max-width: 1000px) {
+
+  .header-content {
+    width: 92%;
+  }
+
+  .navigation {
+    gap: 24px;
+  }
+
+  .benefits {
+    gap: 25px;
+  }
+
+  .benefit-card {
+    padding: 17px;
+  }
+
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 800px) {
+
+  .header-content {
+    height: auto;
+
+    padding: 20px 0;
+
+    flex-wrap: wrap;
+
+    gap: 18px;
+  }
+
+  .navigation {
+    order: 3;
+
+    width: 100%;
+
+    justify-content: center;
+
+    gap: 18px;
+  }
+
+  .navigation a {
+    font-size: 12px;
+  }
+
+  .download-button {
+    padding: 10px 16px;
+  }
+
+  .hero {
+    padding-top: 80px;
+  }
+
+  .hero h1 {
+    font-size: 39px;
+  }
+
+  .hero-description {
+    font-size: 14px;
+  }
+
+  .benefits {
+    grid-template-columns: 1fr;
+
+    max-width: 480px;
+
+    gap: 16px;
+
+    margin-top: 65px;
+  }
+
+}
+
+
+/* =========================
+   CELULAR
+========================= */
+
+@media (max-width: 550px) {
+
+  .header-content {
+    justify-content: center;
+  }
+
+  .logo {
+    width: 115px;
+  }
+
+  .download-button {
+    display: none;
+  }
+
+  .navigation {
+    overflow-x: auto;
+
+    justify-content: flex-start;
+
+    width: 100%;
+
+    padding-bottom: 3px;
+  }
+
+  .hero {
+    padding-top: 65px;
+  }
+
+  .hero h1 {
+    font-size: 32px;
+
+    letter-spacing: -0.5px;
+  }
+
+  .title-line {
+    width: 250px;
+
+    margin-bottom: 25px;
+  }
+
+  .hero-description {
+    font-size: 13px;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+
+    margin-top: 30px;
+  }
+
+  .primary-button,
+  .secondary-button {
+    width: 190px;
+  }
+
+  .hero-circles {
+    width: 650px;
+    height: 650px;
+  }
+
+  .circle-1 {
+    width: 650px;
+    height: 650px;
+  }
+
+  .circle-2 {
+    width: 540px;
+    height: 540px;
+  }
+
+  .circle-3 {
+    width: 450px;
+    height: 450px;
+  }
+
+}

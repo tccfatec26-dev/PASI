@@ -1,0 +1,120 @@
+/* =========================================
+   FAQ (variação A: split com accordion)
+========================================= */
+
+.faq {
+  padding: 110px 0;
+  background: var(--White);
+}
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 64px;
+  align-items: start;
+}
+
+.faq-intro {
+  position: sticky;
+  top: 110px;
+}
+
+.faq-intro .text-action { margin-top: 18px; }
+
+.faq-lista {
+  border-top: 1px solid var(--Border-card);
+  transition-delay: 0.15s;
+}
+
+.faq-item { border-bottom: 1px solid var(--Border-card); }
+
+.faq-item button {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 4px;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--Navy-600);
+  cursor: pointer;
+}
+
+.faq-item button:hover { color: var(--Link); }
+
+.faq-chevron {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--Softblue-2);
+  color: var(--Link);
+  font-size: 12px;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease;
+}
+
+.faq-item.is-open .faq-chevron {
+  background: var(--Action);
+  color: var(--White);
+  transform: rotate(180deg);
+}
+
+.faq-resposta {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.42s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+}
+
+.faq-item.is-open .faq-resposta {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.faq-resposta-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.faq-resposta p {
+  padding: 0 52px 20px 4px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--Text-muted);
+  transform: translateY(-5px);
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.faq-item.is-open .faq-resposta p {
+  transform: translateY(0);
+}
+
+@media (max-width: 900px) {
+  .faq { padding: 72px 0; }
+
+  .faq-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .faq-intro { position: static; }
+
+  .faq-resposta p { padding-right: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-resposta,
+  .faq-resposta p,
+  .faq-chevron {
+    transition: none;
+  }
+}
