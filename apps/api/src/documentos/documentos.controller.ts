@@ -74,16 +74,20 @@ export class DocumentosController {
 
   @Get('formularios/:idFormulario/documentos')
   @ApiOperation({ summary: 'Lista os arquivos de apoio de um formulário' })
-  listar(@Param('idFormulario', ParseIntPipe) idFormulario: number) {
-    return this.documentosService.listarPorFormulario(idFormulario);
+  listar(
+    @Param('idFormulario', ParseIntPipe) idFormulario: number,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.documentosService.listarPorFormulario(idFormulario, user);
   }
 
   @Get('documentos/:id/download')
   @ApiOperation({ summary: 'Baixa um documento' })
   async download(
     @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthUser,
   ): Promise<StreamableFile> {
-    const doc = await this.documentosService.paraDownload(id);
+    const doc = await this.documentosService.paraDownload(id, user);
     const stream = createReadStream(doc.caminho);
     return new StreamableFile(stream, {
       disposition: `attachment; filename="${doc.nome_fisico ?? 'arquivo'}"`,
