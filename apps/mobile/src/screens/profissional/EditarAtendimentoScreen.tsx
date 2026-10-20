@@ -130,7 +130,12 @@ export function EditarAtendimentoScreen() {
     );
   }
 
+  // Remover formulário: só em "Criado" (mesma regra da API).
   const isCriado = atendimento.id_situacao_atendimento === SituacaoAtendimento.CRIADO;
+  // Adicionar formulário: em qualquer situação, menos Avaliado e Encerrado
+  // (mesma regra da API em atribuirFormularios).
+  const situacoesSemAdicionar: number[] = [SituacaoAtendimento.AVALIADO, SituacaoAtendimento.ENCERRADO];
+  const podeAdicionar = !situacoesSemAdicionar.includes(atendimento.id_situacao_atendimento);
   // Busca local sem sensibilidade a maiúsculas/acentos.
   const formsFiltrados = formDisp.filter((f) => contemTexto(f.nome, formBusca));
 
@@ -171,7 +176,7 @@ export function EditarAtendimentoScreen() {
             <Text className="text-sm font-medium text-gray-700">
               Formulários vinculados ({atendimento.atendimento_formulario.length})
             </Text>
-            {isCriado && (
+            {podeAdicionar && (
               <TouchableOpacity
                 onPress={abrirModal}
                 className="flex-row items-center bg-primary px-3 py-1.5 rounded-xl"
