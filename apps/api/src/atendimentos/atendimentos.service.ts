@@ -188,7 +188,7 @@ export class AtendimentosService {
   }
 
   // ----------------------------------------------------------------
-  // Atribuir formulários (proibido quando "Avaliado" ou "Encerrado")
+  // Atribuir formulários (proibido quando "Avaliado", "Encerrado" ou "Inativo")
   // Depois de atribuir, recalcula a situação: um atendimento "Respondido"
   // que recebe formulário novo volta para "Iniciado".
   // ----------------------------------------------------------------
@@ -203,10 +203,11 @@ export class AtendimentosService {
     const bloqueado: number[] = [
       SituacaoAtendimento.AVALIADO,
       SituacaoAtendimento.ENCERRADO,
+      SituacaoAtendimento.INATIVO,
     ];
     if (bloqueado.includes(atendimento.id_situacao_atendimento)) {
       throw new BadRequestException(
-        'Não é possível atribuir formulários a um atendimento Avaliado ou Encerrado.',
+        'Não é possível atribuir formulários a um atendimento Avaliado, Encerrado ou Inativo.',
       );
     }
 
