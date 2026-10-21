@@ -26,6 +26,7 @@ model atendimento {
   situacao_atendimento                             situacao_atendimento     @relation(fields: [id_situacao_atendimento], references: [id_situacao_atendimento], onDelete: NoAction, onUpdate: NoAction, map: "fk_atend_situacao")
   usuario_atendimento_id_usuario_cadTousuario      usuario?                 @relation("atendimento_id_usuario_cadTousuario", fields: [id_usuario_cad], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_atend_usuariocad")
   atendimento_formulario                           atendimento_formulario[]
+  formulario_paciente                              formulario_paciente[]
 }
 
 model atendimento_formulario {
@@ -74,8 +75,10 @@ model formulario_avaliacao {
   id_usuario_avaliador    Int
   dt_avaliacao            DateTime   @default(now()) @db.Timestamp(6)
   observacao              String     @db.VarChar(500)
+  id_formulario_paciente  Int?
   usuario                 usuario    @relation(fields: [id_usuario_avaliador], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_fav_avaliador")
   formulario              formulario @relation(fields: [id_formulario], references: [id_formulario], onDelete: NoAction, onUpdate: NoAction, map: "fk_fav_formulario")
+  formulario_paciente     formulario_paciente? @relation(fields: [id_formulario_paciente], references: [id_formulario_paciente], onDelete: NoAction, onUpdate: NoAction, map: "fk_fav_formpac")
 }
 
 model formulario_paciente {
@@ -83,11 +86,16 @@ model formulario_paciente {
   id_formulario          Int
   id_usuario_paciente    Int
   id_situacao_formulario Int                 @db.SmallInt
+  id_atendimento         Int?
   formulario             formulario          @relation(fields: [id_formulario], references: [id_formulario], onDelete: NoAction, onUpdate: NoAction, map: "fk_fp_formulario")
   usuario                usuario             @relation(fields: [id_usuario_paciente], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_fp_paciente")
   situacao_formulario    situacao_formulario @relation(fields: [id_situacao_formulario], references: [id_situacao_formulario], onDelete: NoAction, onUpdate: NoAction, map: "fk_fp_situacao")
+  atendimento            atendimento?        @relation(fields: [id_atendimento], references: [id_atendimento], onDelete: NoAction, onUpdate: NoAction, map: "fk_fp_atendimento")
   resposta               resposta[]
   log_respostas          log_respostas[]
+  formulario_avaliacao   formulario_avaliacao[]
+
+  @@unique([id_atendimento, id_formulario], map: "uq_fp_atendimento_formulario")
 }
 
 model genero {

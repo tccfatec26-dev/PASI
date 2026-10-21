@@ -41,20 +41,34 @@ export class DocumentosService {
     });
   }
 
-  listarPorFormulario(idFormulario: number) {
+  // Profissional vê os documentos de qualquer formulário; o paciente, só
+  // os de formulários atribuídos a algum atendimento dele.
+  async listarPorFormulario(idFormulario: number, user: AuthUser) {
+    await this.garantirAcessoAoFormulario(idFormulario, user);
     return this.prisma.documentos.findMany({
       where: { id_formulario: idFormulario, excluido: false },
       orderBy: { id_documento: 'desc' },
     });
   }
 
-  // Retorna o documento validando que ainda existe (lógica e fisicamente).
-  async paraDownload(idDocumento: number) {
+  // Retorna o documento validando que ainda existe (lógica e fisicamente)
+  // e que o usuário pode vê-lo.
+  async paraDownload(idDocumento: number, user: AuthUser) {
     const doc = await this.prisma.documentos.findUnique({
       where: { id_documento: idDocumento },
+      include: { resposta: { select: { id_usuario_pac: true } } },
     });
     if (!doc || doc.excluido) {
       throw new NotFoundException('Documento não encontrado');
+    }
+    if (user.tipo !== TipoUsuario.PROFISSIONAL) {
+      const respostaDoPaciente = doc.resposta?.id_usuario_pac === user.id_usuario;
+      if (!respostaDoPaciente) {
+        if (doc.id_formulario === null) {
+          throw new ForbiddenException('Você não tem acesso a este documento.');
+        }
+        await this.garantirAcessoAoFormulario(doc.id_formulario, user);
+      }
     }
     if (!existsSync(doc.caminho)) {
       throw new NotFoundException('Arquivo físico não encontrado no servidor.');
@@ -75,6 +89,19 @@ export class DocumentosService {
       where: { id_documento: idDocumento },
       data: { excluido: true },
     });
+  }
+
+  private async garantirAcessoAoFormulario(idFormulario: number, user: AuthUser) {
+    if (user.tipo === TipoUsuario.PROFISSIONAL) return;
+    const atribuido = await this.prisma.atendimento_formulario.count({
+      where: {
+        id_formulario: idFormulario,
+        atendimento: { id_usuario_paciente: user.id_usuario },
+      },
+    });
+    if (atribuido === 0) {
+      throw new ForbiddenException('Você não tem acesso a este documento.');
+    }
   }
 
   private somenteProfissional(user: AuthUser) {

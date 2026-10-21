@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SituacaoAtendimento, TipoUsuario } from '../common/constants';
 import type { AuthUser } from '../auth/current-user.decorator';
+import { recalcularSituacaoAtendimento } from '../common/situacao-atendimento';
 import { CreateAtendimentoDto } from './dto/create-atendimento.dto';
 import { UpdateAtendimentoDto } from './dto/update-atendimento.dto';
 import { AtribuirFormulariosDto } from './dto/atribuir-formularios.dto';
@@ -45,7 +46,7 @@ export class AtendimentosService {
           },
         },
         include: this.includePadrao(),
-      });
+      }).then((a) => this.comStatusFormularios(a));
     } catch (e) {
       throw this.tratarErroRelacao(e);
     }
@@ -124,7 +125,7 @@ export class AtendimentosService {
     ]);
 
     return {
-      data,
+      data: data.map((a) => this.comStatusFormularios(a)),
       total,
       page,
       limit,
@@ -132,7 +133,8 @@ export class AtendimentosService {
     };
   }
 
-  async findOne(id: number) {
+  // Detalhe: o profissional vê qualquer atendimento; o paciente, só os seus.
+  async findOne(id: number, user: AuthUser) {
     const atendimento = await this.prisma.atendimento.findUnique({
       where: { id_atendimento: id },
       include: this.includePadrao(),
@@ -140,32 +142,13 @@ export class AtendimentosService {
     if (!atendimento) {
       throw new NotFoundException('Atendimento não encontrado');
     }
-
-    // Enrich each atendimento_formulario with the patient's response status
-    const idFormularios = atendimento.atendimento_formulario.map((af) => af.id_formulario);
-    if (idFormularios.length > 0) {
-      const fpList = await this.prisma.formulario_paciente.findMany({
-        where: {
-          id_usuario_paciente: atendimento.id_usuario_paciente,
-          id_formulario: { in: idFormularios },
-        },
-        select: {
-          id_formulario: true,
-          id_situacao_formulario: true,
-          situacao_formulario: { select: { nome: true } },
-        },
-      });
-      const statusMap = new Map(fpList.map((fp) => [fp.id_formulario, fp]));
-      return {
-        ...atendimento,
-        atendimento_formulario: atendimento.atendimento_formulario.map((af) => ({
-          ...af,
-          status_formulario_paciente: statusMap.get(af.id_formulario) ?? null,
-        })),
-      };
+    if (
+      user.tipo !== TipoUsuario.PROFISSIONAL &&
+      atendimento.id_usuario_paciente !== user.id_usuario
+    ) {
+      throw new ForbiddenException('Este atendimento não pertence a você.');
     }
-
-    return atendimento;
+    return this.comStatusFormularios(atendimento);
   }
 
   // ----------------------------------------------------------------
@@ -173,7 +156,7 @@ export class AtendimentosService {
   // ----------------------------------------------------------------
   async update(id: number, dto: UpdateAtendimentoDto, user: AuthUser) {
     this.somenteProfissional(user);
-    const atendimento = await this.findOne(id);
+    const atendimento = await this.findOne(id, user);
 
     if (
       dto.id_usuario_paciente !== undefined &&
@@ -198,14 +181,16 @@ export class AtendimentosService {
             : {}),
         },
         include: this.includePadrao(),
-      });
+      }).then((a) => this.comStatusFormularios(a));
     } catch (e) {
       throw this.tratarErroRelacao(e);
     }
   }
 
   // ----------------------------------------------------------------
-  // Atribuir formulários (proibido quando "Avaliado" ou "Encerrado")
+  // Atribuir formulários (proibido quando "Avaliado", "Encerrado" ou "Inativo")
+  // Depois de atribuir, recalcula a situação: um atendimento "Respondido"
+  // que recebe formulário novo volta para "Iniciado".
   // ----------------------------------------------------------------
   async atribuirFormularios(
     id: number,
@@ -213,15 +198,16 @@ export class AtendimentosService {
     user: AuthUser,
   ) {
     this.somenteProfissional(user);
-    const atendimento = await this.findOne(id);
+    const atendimento = await this.findOne(id, user);
 
     const bloqueado: number[] = [
       SituacaoAtendimento.AVALIADO,
       SituacaoAtendimento.ENCERRADO,
+      SituacaoAtendimento.INATIVO,
     ];
     if (bloqueado.includes(atendimento.id_situacao_atendimento)) {
       throw new BadRequestException(
-        'Não é possível atribuir formulários a um atendimento Avaliado ou Encerrado.',
+        'Não é possível atribuir formulários a um atendimento Avaliado, Encerrado ou Inativo.',
       );
     }
 
@@ -250,13 +236,14 @@ export class AtendimentosService {
       throw this.tratarErroRelacao(e);
     }
 
-    return this.findOne(id);
+    await recalcularSituacaoAtendimento(this.prisma, id);
+    return this.findOne(id, user);
   }
 
   // Remove um formulário do atendimento (regra da tela de edição: só "Criado")
   async removerFormulario(id: number, idFormulario: number, user: AuthUser) {
     this.somenteProfissional(user);
-    const atendimento = await this.findOne(id);
+    const atendimento = await this.findOne(id, user);
 
     if (atendimento.id_situacao_atendimento !== SituacaoAtendimento.CRIADO) {
       throw new BadRequestException(
@@ -267,7 +254,8 @@ export class AtendimentosService {
     await this.prisma.atendimento_formulario.deleteMany({
       where: { id_atendimento: id, id_formulario: idFormulario },
     });
-    return this.findOne(id);
+    await recalcularSituacaoAtendimento(this.prisma, id);
+    return this.findOne(id, user);
   }
 
   // ----------------------------------------------------------------
@@ -275,7 +263,7 @@ export class AtendimentosService {
   // ----------------------------------------------------------------
   async encerrar(id: number, user: AuthUser) {
     this.somenteProfissional(user);
-    const atendimento = await this.findOne(id);
+    const atendimento = await this.findOne(id, user);
 
     if (atendimento.id_situacao_atendimento !== SituacaoAtendimento.AVALIADO) {
       throw new BadRequestException(
@@ -289,7 +277,7 @@ export class AtendimentosService {
   // Inativar (criado indevidamente)
   async inativar(id: number, user: AuthUser) {
     this.somenteProfissional(user);
-    const atendimento = await this.findOne(id);
+    const atendimento = await this.findOne(id, user);
 
     if (atendimento.id_situacao_atendimento === SituacaoAtendimento.ENCERRADO) {
       throw new BadRequestException(
@@ -322,15 +310,43 @@ export class AtendimentosService {
   }
 
   private mudarSituacao(id: number, idSituacao: number) {
-    return this.prisma.atendimento.update({
-      where: { id_atendimento: id },
-      data: {
-        situacao_atendimento: {
-          connect: { id_situacao_atendimento: idSituacao },
+    return this.prisma.atendimento
+      .update({
+        where: { id_atendimento: id },
+        data: {
+          situacao_atendimento: {
+            connect: { id_situacao_atendimento: idSituacao },
+          },
         },
-      },
-      include: this.includePadrao(),
-    });
+        include: this.includePadrao(),
+      })
+      .then((a) => this.comStatusFormularios(a));
+  }
+
+  // Acrescenta a cada formulário atribuído a situação do preenchimento do
+  // paciente NESTE atendimento (null = ainda não iniciado). Mantém o mesmo
+  // formato de resposta usado pelo app (status_formulario_paciente).
+  private comStatusFormularios<
+    T extends {
+      atendimento_formulario: { id_formulario: number }[];
+      formulario_paciente: {
+        id_formulario: number;
+        id_situacao_formulario: number;
+        situacao_formulario: { nome: string } | null;
+      }[];
+    },
+  >(atendimento: T) {
+    const { formulario_paciente, ...resto } = atendimento;
+    const porFormulario = new Map(
+      formulario_paciente.map((fp) => [fp.id_formulario, fp]),
+    );
+    return {
+      ...resto,
+      atendimento_formulario: atendimento.atendimento_formulario.map((af) => ({
+        ...af,
+        status_formulario_paciente: porFormulario.get(af.id_formulario) ?? null,
+      })),
+    };
   }
 
   private includePadrao() {
@@ -344,6 +360,13 @@ export class AtendimentosService {
           formulario: {
             select: { id_formulario: true, nome: true, descricao: true },
           },
+        },
+      },
+      formulario_paciente: {
+        select: {
+          id_formulario: true,
+          id_situacao_formulario: true,
+          situacao_formulario: { select: { nome: true } },
         },
       },
     } satisfies Prisma.atendimentoInclude;

@@ -14,6 +14,7 @@ import {
   TipoUsuario,
 } from '../common/constants';
 import type { AuthUser } from '../auth/current-user.decorator';
+import { recalcularSituacaoAtendimento } from '../common/situacao-atendimento';
 import { RespostaItemDto, SalvarRespostasDto } from './dto/salvar-respostas.dto';
 
 @Injectable()
@@ -23,36 +24,38 @@ export class RespostasService {
 
   // ----------------------------------------------------------------
   // Iniciar o preenchimento de um formulário atribuído (paciente)
-  // Cria o formulario_paciente em "Rascunho" e move o atendimento
-  // de "Criado" para "Iniciado".
+  // Cria o formulario_paciente em "Rascunho" DESTE atendimento e
+  // recalcula a situação (de "Criado" passa a "Iniciado").
   // ----------------------------------------------------------------
   async iniciar(idAtendimento: number, idFormulario: number, user: AuthUser) {
     this.somentePaciente(user);
-    const atendimento = await this.carregarAtendimentoDoPaciente(
-      idAtendimento,
-      idFormulario,
-      user,
-    );
+    await this.carregarAtendimentoDoPaciente(idAtendimento, idFormulario, user);
 
-    let fp = await this.acharFormularioPaciente(idFormulario, user.id_usuario);
+    const fp = await this.acharFormularioPaciente(idAtendimento, idFormulario);
     if (!fp) {
-      fp = await this.prisma.formulario_paciente.create({
-        data: {
-          formulario: { connect: { id_formulario: idFormulario } },
-          usuario: { connect: { id_usuario: user.id_usuario } },
-          situacao_formulario: {
-            connect: { id_situacao_formulario: SituacaoFormulario.RASCUNHO },
+      try {
+        await this.prisma.formulario_paciente.create({
+          data: {
+            formulario: { connect: { id_formulario: idFormulario } },
+            usuario: { connect: { id_usuario: user.id_usuario } },
+            atendimento: { connect: { id_atendimento: idAtendimento } },
+            situacao_formulario: {
+              connect: { id_situacao_formulario: SituacaoFormulario.RASCUNHO },
+            },
           },
-        },
-      });
+        });
+      } catch (e) {
+        // Duas chamadas simultâneas: a outra já criou o registro (índice
+        // único atendimento + formulário). Segue com o registro existente.
+        if (
+          !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002')
+        ) {
+          throw e;
+        }
+      }
     }
 
-    if (atendimento.id_situacao_atendimento === SituacaoAtendimento.CRIADO) {
-      await this.mudarSituacaoAtendimento(
-        idAtendimento,
-        SituacaoAtendimento.INICIADO,
-      );
-    }
+    await recalcularSituacaoAtendimento(this.prisma, idAtendimento);
 
     return this.detalhar(idAtendimento, idFormulario, user);
   }
@@ -91,7 +94,7 @@ export class RespostasService {
       throw new NotFoundException('Formulário não encontrado');
     }
 
-    const fp = await this.acharFormularioPaciente(idFormulario, idPaciente);
+    const fp = await this.acharFormularioPaciente(idAtendimento, idFormulario);
     const respostas = fp
       ? await this.prisma.resposta.findMany({
           where: { id_formulario_paciente: fp.id_formulario_paciente },
@@ -122,7 +125,7 @@ export class RespostasService {
     this.somentePaciente(user);
     await this.carregarAtendimentoDoPaciente(idAtendimento, idFormulario, user);
 
-    const fp = await this.exigirFormularioPaciente(idFormulario, user.id_usuario);
+    const fp = await this.exigirFormularioPaciente(idAtendimento, idFormulario);
     // Após enviar (Respondido) ou já em avaliação/avaliado, não pode mais alterar.
     if (fp.id_situacao_formulario >= SituacaoFormulario.RESPONDIDO) {
       throw new BadRequestException(
@@ -285,15 +288,15 @@ export class RespostasService {
   }
 
   // ----------------------------------------------------------------
-  // Concluir o formulário: valida obrigatórias, marca "Respondido" e,
-  // se todos os formulários do atendimento estiverem respondidos,
-  // move o atendimento para "Respondido".
+  // Concluir o formulário: valida obrigatórias, marca "Respondido" e
+  // recalcula a situação do atendimento (vai para "Respondido" quando
+  // todos os formulários atribuídos estiverem respondidos).
   // ----------------------------------------------------------------
   async concluir(idAtendimento: number, idFormulario: number, user: AuthUser) {
     this.somentePaciente(user);
     await this.carregarAtendimentoDoPaciente(idAtendimento, idFormulario, user);
 
-    const fp = await this.exigirFormularioPaciente(idFormulario, user.id_usuario);
+    const fp = await this.exigirFormularioPaciente(idAtendimento, idFormulario);
     if (fp.id_situacao_formulario >= SituacaoFormulario.RESPONDIDO) {
       throw new BadRequestException('Este formulário já foi concluído.');
     }
@@ -312,7 +315,7 @@ export class RespostasService {
       },
     });
 
-    await this.talvezConcluirAtendimento(idAtendimento, user.id_usuario);
+    await recalcularSituacaoAtendimento(this.prisma, idAtendimento);
 
     return this.detalhar(idAtendimento, idFormulario, user);
   }
@@ -441,34 +444,6 @@ export class RespostasService {
     }
   }
 
-  // Move o atendimento para "Respondido" quando todos os formulários
-  // atribuídos já foram respondidos pelo paciente.
-  private async talvezConcluirAtendimento(
-    idAtendimento: number,
-    idPaciente: number,
-  ) {
-    const atribuidos = await this.prisma.atendimento_formulario.findMany({
-      where: { id_atendimento: idAtendimento },
-      select: { id_formulario: true },
-    });
-    if (atribuidos.length === 0) return;
-
-    const respondidos = await this.prisma.formulario_paciente.count({
-      where: {
-        id_usuario_paciente: idPaciente,
-        id_situacao_formulario: SituacaoFormulario.RESPONDIDO,
-        id_formulario: { in: atribuidos.map((a) => a.id_formulario) },
-      },
-    });
-
-    if (respondidos >= atribuidos.length) {
-      await this.mudarSituacaoAtendimento(
-        idAtendimento,
-        SituacaoAtendimento.RESPONDIDO,
-      );
-    }
-  }
-
   // ----------------------------------------------------------------
   // Helpers de carga/autorização
   // ----------------------------------------------------------------
@@ -526,31 +501,22 @@ export class RespostasService {
     return atendimento;
   }
 
-  private acharFormularioPaciente(idFormulario: number, idPaciente: number) {
+  // O formulario_paciente é do atendimento: o mesmo formulário em outro
+  // atendimento do mesmo paciente tem respostas e situação próprias.
+  private acharFormularioPaciente(idAtendimento: number, idFormulario: number) {
     return this.prisma.formulario_paciente.findFirst({
-      where: { id_formulario: idFormulario, id_usuario_paciente: idPaciente },
+      where: { id_atendimento: idAtendimento, id_formulario: idFormulario },
     });
   }
 
-  private async exigirFormularioPaciente(idFormulario: number, idPaciente: number) {
-    const fp = await this.acharFormularioPaciente(idFormulario, idPaciente);
+  private async exigirFormularioPaciente(idAtendimento: number, idFormulario: number) {
+    const fp = await this.acharFormularioPaciente(idAtendimento, idFormulario);
     if (!fp) {
       throw new BadRequestException(
         'Inicie o preenchimento do formulário antes de responder.',
       );
     }
     return fp;
-  }
-
-  private mudarSituacaoAtendimento(idAtendimento: number, idSituacao: number) {
-    return this.prisma.atendimento.update({
-      where: { id_atendimento: idAtendimento },
-      data: {
-        situacao_atendimento: {
-          connect: { id_situacao_atendimento: idSituacao },
-        },
-      },
-    });
   }
 
   private somentePaciente(user: AuthUser) {

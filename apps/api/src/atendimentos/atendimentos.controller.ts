@@ -43,8 +43,8 @@ export class AtendimentosController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Detalha um atendimento e seus formulários atribuídos' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.atendimentosService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
+    return this.atendimentosService.findOne(id, user);
   }
 
   @Patch(':id')

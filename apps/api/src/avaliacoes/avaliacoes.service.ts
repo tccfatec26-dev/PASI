@@ -11,6 +11,7 @@ import {
   TipoUsuario,
 } from '../common/constants';
 import type { AuthUser } from '../auth/current-user.decorator';
+import { recalcularSituacaoAtendimento } from '../common/situacao-atendimento';
 import { CreateAvaliacaoDto } from './dto/create-avaliacao.dto';
 
 @Injectable()
@@ -19,9 +20,9 @@ export class AvaliacoesService {
 
   // ----------------------------------------------------------------
   // Iniciar a análise de um formulário respondido (profissional).
-  // Move o formulario_paciente de "Respondido" para "Em avaliação" e o
-  // atendimento para "Em avaliação". Idempotente: se já está em avaliação,
-  // apenas retorna; se já foi avaliado, bloqueia.
+  // Move o formulario_paciente de "Respondido" para "Em avaliação" e
+  // recalcula o atendimento (vai para "Em avaliação"). Idempotente: se já
+  // está em avaliação, apenas retorna; se já foi avaliado, bloqueia.
   // ----------------------------------------------------------------
   async iniciar(idAtendimento: number, idFormulario: number, user: AuthUser) {
     this.somenteProfissional(user);
@@ -29,10 +30,7 @@ export class AvaliacoesService {
     this.garantirFormularioAtribuido(atendimento, idFormulario);
     this.garantirAtendimentoAvaliavel(atendimento.id_situacao_atendimento);
 
-    const fp = await this.exigirFormularioPaciente(
-      idFormulario,
-      atendimento.id_usuario_paciente,
-    );
+    const fp = await this.exigirFormularioPaciente(idAtendimento, idFormulario);
 
     if (fp.id_situacao_formulario === SituacaoFormulario.AVALIADO) {
       throw new BadRequestException(
@@ -56,25 +54,17 @@ export class AvaliacoesService {
     }
 
     // O atendimento entra em "Em avaliação" assim que a análise começa.
-    if (atendimento.id_situacao_atendimento === SituacaoAtendimento.RESPONDIDO) {
-      await this.prisma.atendimento.update({
-        where: { id_atendimento: atendimento.id_atendimento },
-        data: {
-          situacao_atendimento: {
-            connect: { id_situacao_atendimento: SituacaoAtendimento.EM_AVALIACAO },
-          },
-        },
-      });
-    }
+    await recalcularSituacaoAtendimento(this.prisma, idAtendimento);
 
     return this.listar(idAtendimento, idFormulario, user);
   }
 
   // ----------------------------------------------------------------
   // Avaliar (finalizar) um formulário respondido (profissional). Registra
-  // a observação, marca o formulario_paciente como "Avaliado" (impedindo
-  // novas avaliações) e move o atendimento para "Em avaliação"; quando
-  // todos os formulários atribuídos forem avaliados, vai para "Avaliado".
+  // a observação ligada ao formulário DESTE paciente neste atendimento,
+  // marca o formulario_paciente como "Avaliado" (impedindo novas
+  // avaliações) e recalcula o atendimento: "Avaliado" quando todos os
+  // formulários atribuídos estiverem avaliados, senão "Em avaliação".
   // ----------------------------------------------------------------
   async avaliar(
     idAtendimento: number,
@@ -87,10 +77,7 @@ export class AvaliacoesService {
     this.garantirFormularioAtribuido(atendimento, idFormulario);
     this.garantirAtendimentoAvaliavel(atendimento.id_situacao_atendimento);
 
-    const fp = await this.exigirFormularioPaciente(
-      idFormulario,
-      atendimento.id_usuario_paciente,
-    );
+    const fp = await this.exigirFormularioPaciente(idAtendimento, idFormulario);
 
     // Só uma avaliação por formulário: depois de "Avaliado", não permite mais.
     if (fp.id_situacao_formulario === SituacaoFormulario.AVALIADO) {
@@ -112,6 +99,9 @@ export class AvaliacoesService {
       this.prisma.formulario_avaliacao.create({
         data: {
           formulario: { connect: { id_formulario: idFormulario } },
+          formulario_paciente: {
+            connect: { id_formulario_paciente: fp.id_formulario_paciente },
+          },
           usuario: { connect: { id_usuario: user.id_usuario } },
           observacao: dto.observacao,
         },
@@ -126,21 +116,24 @@ export class AvaliacoesService {
       }),
     ]);
 
-    await this.atualizarSituacaoAtendimento(atendimento.id_atendimento);
+    await recalcularSituacaoAtendimento(this.prisma, idAtendimento);
 
     return this.listar(idAtendimento, idFormulario, user);
   }
 
   // ----------------------------------------------------------------
-  // Lista as avaliações de um formulário do atendimento.
+  // Lista as avaliações do formulário do paciente NESTE atendimento.
   // ----------------------------------------------------------------
   async listar(idAtendimento: number, idFormulario: number, user: AuthUser) {
     this.somenteProfissional(user);
     const atendimento = await this.acharAtendimento(idAtendimento);
     this.garantirFormularioAtribuido(atendimento, idFormulario);
 
+    const fp = await this.acharFormularioPaciente(idAtendimento, idFormulario);
+    if (!fp) return [];
+
     return this.prisma.formulario_avaliacao.findMany({
-      where: { id_formulario: idFormulario },
+      where: { id_formulario_paciente: fp.id_formulario_paciente },
       orderBy: { id_formulario_avaliacao: 'desc' },
       include: {
         usuario: { select: { id_usuario: true, nome: true } },
@@ -151,37 +144,6 @@ export class AvaliacoesService {
   // ----------------------------------------------------------------
   // Helpers
   // ----------------------------------------------------------------
-  // Em avaliação enquanto houver formulários atribuídos sem avaliação;
-  // Avaliado quando todos os atribuídos já tiverem ao menos uma avaliação.
-  private async atualizarSituacaoAtendimento(idAtendimento: number) {
-    const atribuidos = await this.prisma.atendimento_formulario.findMany({
-      where: { id_atendimento: idAtendimento },
-      select: { id_formulario: true },
-    });
-    if (atribuidos.length === 0) return;
-
-    const idsAtribuidos = atribuidos.map((a) => a.id_formulario);
-    const avaliados = await this.prisma.formulario_avaliacao.findMany({
-      where: { id_formulario: { in: idsAtribuidos } },
-      distinct: ['id_formulario'],
-      select: { id_formulario: true },
-    });
-
-    const todosAvaliados = avaliados.length >= idsAtribuidos.length;
-    const novaSituacao = todosAvaliados
-      ? SituacaoAtendimento.AVALIADO
-      : SituacaoAtendimento.EM_AVALIACAO;
-
-    await this.prisma.atendimento.update({
-      where: { id_atendimento: idAtendimento },
-      data: {
-        situacao_atendimento: {
-          connect: { id_situacao_atendimento: novaSituacao },
-        },
-      },
-    });
-  }
-
   private garantirAtendimentoAvaliavel(idSituacaoAtendimento: number) {
     const bloqueado: number[] = [
       SituacaoAtendimento.ENCERRADO,
@@ -194,10 +156,15 @@ export class AvaliacoesService {
     }
   }
 
-  private async exigirFormularioPaciente(idFormulario: number, idPaciente: number) {
-    const fp = await this.prisma.formulario_paciente.findFirst({
-      where: { id_formulario: idFormulario, id_usuario_paciente: idPaciente },
+  // O formulario_paciente é do atendimento (não só do formulário + paciente).
+  private acharFormularioPaciente(idAtendimento: number, idFormulario: number) {
+    return this.prisma.formulario_paciente.findFirst({
+      where: { id_atendimento: idAtendimento, id_formulario: idFormulario },
     });
+  }
+
+  private async exigirFormularioPaciente(idAtendimento: number, idFormulario: number) {
+    const fp = await this.acharFormularioPaciente(idAtendimento, idFormulario);
     if (!fp) {
       throw new BadRequestException(
         'O paciente ainda não respondeu este formulário.',
