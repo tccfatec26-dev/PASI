@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { TIPOS_COM_OPCOES, TipoUsuario } from '../common/constants';
+import { TIPOS_COM_OPCOES, ehProfissional } from '../common/constants';
 import type { AuthUser } from '../auth/current-user.decorator';
 import { CreateFormularioDto } from './dto/create-formulario.dto';
 import { UpdateFormularioDto } from './dto/update-formulario.dto';
@@ -370,7 +370,7 @@ export class FormulariosService {
   }
 
   private somenteProfissional(user: AuthUser) {
-    if (user.tipo !== TipoUsuario.PROFISSIONAL) {
+    if (!ehProfissional(user.tipo)) {
       throw new ForbiddenException(
         'Apenas usuários profissionais podem gerenciar formulários.',
       );

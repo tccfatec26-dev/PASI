@@ -16,4 +16,9 @@ export class UpdateAtendimentoDto {
   @IsOptional()
   @IsInt()
   id_usuario_paciente?: number;
+
+  @ApiPropertyOptional({ example: 1, description: 'Troca a unidade de atendimento' })
+  @IsOptional()
+  @IsInt()
+  id_unidade_atendimento?: number;
 }

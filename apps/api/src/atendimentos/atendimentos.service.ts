@@ -1,12 +1,12 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SituacaoAtendimento, TipoUsuario } from '../common/constants';
+import { AcessoService } from '../acesso/acesso.service';
 import type { AuthUser } from '../auth/current-user.decorator';
 import { recalcularSituacaoAtendimento } from '../common/situacao-atendimento';
 import { CreateAtendimentoDto } from './dto/create-atendimento.dto';
@@ -16,13 +16,19 @@ import { OrdenarAtendimentoPor, QueryAtendimentoDto } from './dto/query-atendime
 
 @Injectable()
 export class AtendimentosService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly acesso: AcessoService,
+  ) {}
 
   // ----------------------------------------------------------------
-  // Criação (apenas profissional)
+  // Criação (apenas profissional). A unidade é obrigatória (RN-USR-20):
+  // o intermediário só usa as unidades dele; o máximo, qualquer uma.
   // ----------------------------------------------------------------
   async create(dto: CreateAtendimentoDto, user: AuthUser) {
     this.somenteProfissional(user);
+    await this.acesso.exigirUnidadePermitida(user, dto.id_unidade_atendimento);
+    await this.garantirPacienteAtivo(dto.id_usuario_paciente);
     await this.garantirFormulariosAtivos(dto.formularios);
 
     try {
@@ -37,6 +43,9 @@ export class AtendimentosService {
           },
           usuario_atendimento_id_usuario_cadTousuario: {
             connect: { id_usuario: user.id_usuario },
+          },
+          unidade_atendimento: {
+            connect: { id_unidade_atendimento: dto.id_unidade_atendimento },
           },
           atendimento_formulario: {
             create: dto.formularios.map((id_formulario) => ({
@@ -53,17 +62,25 @@ export class AtendimentosService {
   }
 
   // ----------------------------------------------------------------
-  // Listagem paginada (profissional vê todos; paciente vê os seus)
+  // Listagem paginada: máximo vê todos; intermediário, os das unidades
+  // dele; paciente, os seus (RN-USR-22 e 23).
   // ----------------------------------------------------------------
   async findAll(query: QueryAtendimentoDto, user: AuthUser) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
 
+    const escopo = await this.acesso.filtroAtendimentos(user);
     const where: Prisma.atendimentoWhereInput = {};
 
-    if (user.tipo === TipoUsuario.PACIENTE) {
-      where.id_usuario_paciente = user.id_usuario;
+    if (query.unidades) {
+      const ids = query.unidades
+        .split(',')
+        .map((s) => parseInt(s.trim(), 10))
+        .filter((n) => !isNaN(n));
+      if (ids.length > 0) {
+        where.id_unidade_atendimento = { in: ids };
+      }
     }
 
     if (query.search?.trim()) {
@@ -115,13 +132,13 @@ export class AtendimentosService {
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.atendimento.findMany({
-        where,
+        where: { AND: [escopo, where] },
         skip,
         take: limit,
         orderBy,
         include: this.includePadrao(),
       }),
-      this.prisma.atendimento.count({ where }),
+      this.prisma.atendimento.count({ where: { AND: [escopo, where] } }),
     ]);
 
     return {
@@ -133,7 +150,7 @@ export class AtendimentosService {
     };
   }
 
-  // Detalhe: o profissional vê qualquer atendimento; o paciente, só os seus.
+  // Detalhe: mesmas regras de visibilidade da listagem.
   async findOne(id: number, user: AuthUser) {
     const atendimento = await this.prisma.atendimento.findUnique({
       where: { id_atendimento: id },
@@ -142,12 +159,7 @@ export class AtendimentosService {
     if (!atendimento) {
       throw new NotFoundException('Atendimento não encontrado');
     }
-    if (
-      user.tipo !== TipoUsuario.PROFISSIONAL &&
-      atendimento.id_usuario_paciente !== user.id_usuario
-    ) {
-      throw new ForbiddenException('Este atendimento não pertence a você.');
-    }
+    await this.acesso.exigirAcessoAtendimento(user, atendimento);
     return this.comStatusFormularios(atendimento);
   }
 
@@ -160,11 +172,17 @@ export class AtendimentosService {
 
     if (
       dto.id_usuario_paciente !== undefined &&
-      atendimento.id_situacao_atendimento !== SituacaoAtendimento.CRIADO
+      dto.id_usuario_paciente !== atendimento.id_usuario_paciente
     ) {
-      throw new BadRequestException(
-        'A troca de paciente só é permitida enquanto o atendimento está em "Criado".',
-      );
+      if (atendimento.id_situacao_atendimento !== SituacaoAtendimento.CRIADO) {
+        throw new BadRequestException(
+          'A troca de paciente só é permitida enquanto o atendimento está em "Criado".',
+        );
+      }
+      await this.garantirPacienteAtivo(dto.id_usuario_paciente);
+    }
+    if (dto.id_unidade_atendimento !== undefined) {
+      await this.acesso.exigirUnidadePermitida(user, dto.id_unidade_atendimento);
     }
 
     try {
@@ -176,6 +194,13 @@ export class AtendimentosService {
             ? {
                 usuario_atendimento_id_usuario_pacienteTousuario: {
                   connect: { id_usuario: dto.id_usuario_paciente },
+                },
+              }
+            : {}),
+          ...(dto.id_unidade_atendimento !== undefined
+            ? {
+                unidade_atendimento: {
+                  connect: { id_unidade_atendimento: dto.id_unidade_atendimento },
                 },
               }
             : {}),
@@ -352,6 +377,9 @@ export class AtendimentosService {
   private includePadrao() {
     return {
       situacao_atendimento: true,
+      unidade_atendimento: {
+        select: { id_unidade_atendimento: true, nome: true },
+      },
       usuario_atendimento_id_usuario_pacienteTousuario: {
         select: { id_usuario: true, nome: true, cpf: true, email: true },
       },
@@ -373,10 +401,20 @@ export class AtendimentosService {
   }
 
   private somenteProfissional(user: AuthUser) {
-    if (user.tipo !== TipoUsuario.PROFISSIONAL) {
-      throw new ForbiddenException(
-        'Apenas usuários profissionais podem executar esta ação.',
-      );
+    this.acesso.exigirProfissional(user);
+  }
+
+  // Atendimento só para paciente ativo (inativo não entra no app).
+  private async garantirPacienteAtivo(idPaciente: number) {
+    const paciente = await this.prisma.usuario.findUnique({
+      where: { id_usuario: idPaciente },
+      select: { id_tipo_usuario: true, ativo: true },
+    });
+    if (!paciente || paciente.id_tipo_usuario !== TipoUsuario.PACIENTE) {
+      throw new BadRequestException('O usuário informado não é um paciente.');
+    }
+    if (!paciente.ativo) {
+      throw new BadRequestException('Este paciente está inativo.');
     }
   }
 
@@ -401,7 +439,7 @@ export class AtendimentosService {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
       if (e.code === 'P2025' || e.code === 'P2003') {
         return new BadRequestException(
-          'Paciente ou formulário informado não existe.',
+          'Paciente, unidade ou formulário informado não existe.',
         );
       }
     }

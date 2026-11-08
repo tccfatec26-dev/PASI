@@ -10,6 +10,9 @@ import { AvaliacoesModule } from './avaliacoes/avaliacoes.module';
 import { ApoioModule } from './apoio/apoio.module';
 import { DocumentosModule } from './documentos/documentos.module';
 import { HealthModule } from './health/health.module';
+import { MailModule } from './mail/mail.module';
+import { AcessoModule } from './acesso/acesso.module';
+import { GestaoModule } from './gestao/gestao.module';
 
 @Module({
   imports: [
@@ -17,6 +20,8 @@ import { HealthModule } from './health/health.module';
       isGlobal: true,
     }),
     PrismaModule,
+    MailModule,
+    AcessoModule,
     AuthModule,
     UsuariosModule,
     AtendimentosModule,
@@ -26,6 +31,7 @@ import { HealthModule } from './health/health.module';
     ApoioModule,
     DocumentosModule,
     HealthModule,
+    GestaoModule,
   ],
 })
 export class AppModule {}

@@ -1,22 +1,21 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  SituacaoAtendimento,
-  SituacaoFormulario,
-  TipoUsuario,
-} from '../common/constants';
+import { SituacaoAtendimento, SituacaoFormulario } from '../common/constants';
+import { AcessoService } from '../acesso/acesso.service';
 import type { AuthUser } from '../auth/current-user.decorator';
 import { recalcularSituacaoAtendimento } from '../common/situacao-atendimento';
 import { CreateAvaliacaoDto } from './dto/create-avaliacao.dto';
 
 @Injectable()
 export class AvaliacoesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly acesso: AcessoService,
+  ) {}
 
   // ----------------------------------------------------------------
   // Iniciar a análise de um formulário respondido (profissional).
@@ -26,7 +25,7 @@ export class AvaliacoesService {
   // ----------------------------------------------------------------
   async iniciar(idAtendimento: number, idFormulario: number, user: AuthUser) {
     this.somenteProfissional(user);
-    const atendimento = await this.acharAtendimento(idAtendimento);
+    const atendimento = await this.acharAtendimento(idAtendimento, user);
     this.garantirFormularioAtribuido(atendimento, idFormulario);
     this.garantirAtendimentoAvaliavel(atendimento.id_situacao_atendimento);
 
@@ -73,7 +72,7 @@ export class AvaliacoesService {
     user: AuthUser,
   ) {
     this.somenteProfissional(user);
-    const atendimento = await this.acharAtendimento(idAtendimento);
+    const atendimento = await this.acharAtendimento(idAtendimento, user);
     this.garantirFormularioAtribuido(atendimento, idFormulario);
     this.garantirAtendimentoAvaliavel(atendimento.id_situacao_atendimento);
 
@@ -126,7 +125,7 @@ export class AvaliacoesService {
   // ----------------------------------------------------------------
   async listar(idAtendimento: number, idFormulario: number, user: AuthUser) {
     this.somenteProfissional(user);
-    const atendimento = await this.acharAtendimento(idAtendimento);
+    const atendimento = await this.acharAtendimento(idAtendimento, user);
     this.garantirFormularioAtribuido(atendimento, idFormulario);
 
     const fp = await this.acharFormularioPaciente(idAtendimento, idFormulario);
@@ -173,7 +172,8 @@ export class AvaliacoesService {
     return fp;
   }
 
-  private async acharAtendimento(idAtendimento: number) {
+  // Também aplica a visibilidade por unidade (RN-USR-22 e 23).
+  private async acharAtendimento(idAtendimento: number, user: AuthUser) {
     const atendimento = await this.prisma.atendimento.findUnique({
       where: { id_atendimento: idAtendimento },
       include: {
@@ -183,6 +183,7 @@ export class AvaliacoesService {
     if (!atendimento) {
       throw new NotFoundException('Atendimento não encontrado');
     }
+    await this.acesso.exigirAcessoAtendimento(user, atendimento);
     return atendimento;
   }
 
@@ -201,10 +202,6 @@ export class AvaliacoesService {
   }
 
   private somenteProfissional(user: AuthUser) {
-    if (user.tipo !== TipoUsuario.PROFISSIONAL) {
-      throw new ForbiddenException(
-        'Apenas usuários profissionais podem avaliar formulários.',
-      );
-    }
+    this.acesso.exigirProfissional(user);
   }
 }

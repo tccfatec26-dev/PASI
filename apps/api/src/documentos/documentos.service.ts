@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { existsSync } from 'fs';
 import { PrismaService } from '../prisma/prisma.service';
-import { TipoUsuario } from '../common/constants';
+import { ehProfissional } from '../common/constants';
 import type { AuthUser } from '../auth/current-user.decorator';
 
 @Injectable()
@@ -61,7 +61,7 @@ export class DocumentosService {
     if (!doc || doc.excluido) {
       throw new NotFoundException('Documento não encontrado');
     }
-    if (user.tipo !== TipoUsuario.PROFISSIONAL) {
+    if (!ehProfissional(user.tipo)) {
       const respostaDoPaciente = doc.resposta?.id_usuario_pac === user.id_usuario;
       if (!respostaDoPaciente) {
         if (doc.id_formulario === null) {
@@ -92,7 +92,7 @@ export class DocumentosService {
   }
 
   private async garantirAcessoAoFormulario(idFormulario: number, user: AuthUser) {
-    if (user.tipo === TipoUsuario.PROFISSIONAL) return;
+    if (ehProfissional(user.tipo)) return;
     const atribuido = await this.prisma.atendimento_formulario.count({
       where: {
         id_formulario: idFormulario,
@@ -105,7 +105,7 @@ export class DocumentosService {
   }
 
   private somenteProfissional(user: AuthUser) {
-    if (user.tipo !== TipoUsuario.PROFISSIONAL) {
+    if (!ehProfissional(user.tipo)) {
       throw new ForbiddenException(
         'Apenas usuários profissionais podem gerenciar documentos.',
       );

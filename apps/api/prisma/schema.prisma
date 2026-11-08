@@ -22,11 +22,15 @@ model atendimento {
   id_situacao_atendimento                          Int                      @db.SmallInt
   dt_cadastro                                      DateTime?                @default(now()) @db.Timestamp(6)
   id_usuario_cad                                   Int?
+  id_unidade_atendimento                           Int?
+  unidade_atendimento                              unidade_atendimento?     @relation(fields: [id_unidade_atendimento], references: [id_unidade_atendimento], onDelete: NoAction, onUpdate: NoAction, map: "fk_atend_unidade")
   usuario_atendimento_id_usuario_pacienteTousuario usuario                  @relation("atendimento_id_usuario_pacienteTousuario", fields: [id_usuario_paciente], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_atend_paciente")
   situacao_atendimento                             situacao_atendimento     @relation(fields: [id_situacao_atendimento], references: [id_situacao_atendimento], onDelete: NoAction, onUpdate: NoAction, map: "fk_atend_situacao")
   usuario_atendimento_id_usuario_cadTousuario      usuario?                 @relation("atendimento_id_usuario_cadTousuario", fields: [id_usuario_cad], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_atend_usuariocad")
   atendimento_formulario                           atendimento_formulario[]
   formulario_paciente                              formulario_paciente[]
+
+  @@index([id_unidade_atendimento], map: "ix_atend_unidade")
 }
 
 model atendimento_formulario {
@@ -111,10 +115,14 @@ model log_adm_geral {
   id_acao          Int
   detalhe          String?   @db.VarChar(500)
   id_usuario_acao  Int
+  id_usuario_alvo  Int?
   dt_hora_acao     DateTime? @default(now()) @db.Timestamp(6)
   acao             acao      @relation(fields: [id_acao], references: [id_acao], onDelete: NoAction, onUpdate: NoAction, map: "fk_lag_acao")
   modulo           modulo    @relation(fields: [id_modulo], references: [id_modulo], onDelete: NoAction, onUpdate: NoAction, map: "fk_lag_modulo")
-  usuario          usuario   @relation(fields: [id_usuario_acao], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_lag_usuario")
+  usuario          usuario   @relation("log_adm_geral_autor", fields: [id_usuario_acao], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_lag_usuario")
+  usuario_alvo     usuario?  @relation("log_adm_geral_alvo", fields: [id_usuario_alvo], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_lag_alvo")
+
+  @@index([id_usuario_alvo], map: "ix_lag_alvo")
 }
 
 model log_respostas {
@@ -262,13 +270,40 @@ model unidade_atendimento {
   dt_cadastro                                                 DateTime?                @default(now()) @db.Timestamp(6)
   tipo_unidade_atendimento                                    tipo_unidade_atendimento @relation(fields: [id_tipo_unidade_atend], references: [id_tipo_unidade_atend], onDelete: NoAction, onUpdate: NoAction, map: "fk_ua_tipounidade")
   usuario_unidade_atendimento_id_usuario_cadTousuario         usuario?                 @relation("unidade_atendimento_id_usuario_cadTousuario", fields: [id_usuario_cad], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_ua_usuariocad")
-  usuario_usuario_id_unidade_atendimentoTounidade_atendimento usuario[]                @relation("usuario_id_unidade_atendimentoTounidade_atendimento")
+  usuario_unidade                                             usuario_unidade[]
+  atendimento                                                 atendimento[]
+}
+
+model situacao_usuario {
+  id_situacao_usuario Int       @id(map: "pk_situacao_usuario") @db.SmallInt
+  nome                String    @db.VarChar(40)
+  descricao           String?   @db.VarChar(300)
+  usuario             usuario[]
+}
+
+/// Unidades de atendimento de cada profissional; exatamente uma é a sede
+/// (índice único parcial uq_uu_sede, criado no script SQL).
+model usuario_unidade {
+  id_usuario_unidade     Int                 @id(map: "pk_usuario_unidade") @default(autoincrement())
+  id_usuario             Int
+  id_unidade_atendimento Int
+  sede                   Boolean             @default(false)
+  id_usuario_vinculo     Int?
+  dt_vinculo             DateTime?           @default(now()) @db.Timestamp(6)
+  usuario                usuario             @relation("usuario_unidade_usuario", fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_uu_usuario")
+  unidade_atendimento    unidade_atendimento @relation(fields: [id_unidade_atendimento], references: [id_unidade_atendimento], onDelete: NoAction, onUpdate: NoAction, map: "fk_uu_unidade")
+  usuario_vinculo        usuario?            @relation("usuario_unidade_vinculo", fields: [id_usuario_vinculo], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_uu_vinculo")
+
+  @@unique([id_usuario, id_unidade_atendimento], map: "uq_uu_usuario_unidade")
 }
 
 model usuario {
   id_usuario                                                              Int                      @id @default(autoincrement())
   id_tipo_usuario                                                         Int                      @db.SmallInt
   id_genero                                                               Int?                     @db.SmallInt
+  id_situacao_usuario                                                     Int                      @default(3) @db.SmallInt
+  ativo                                                                   Boolean                  @default(true)
+  senha_provisoria_expira_em                                              DateTime?                @db.Timestamp(6)
   nome                                                                    String                   @db.VarChar(70)
   sexo                                                                    String                   @db.Char(1)
   dt_nascimento                                                           DateTime?                @db.Timestamp(6)
@@ -288,7 +323,6 @@ model usuario {
   senha_reset_token                                                       String?                  @unique @db.VarChar(64)
   senha_reset_expira_em                                                   DateTime?                @db.Timestamp(6)
   id_profissao                                                            Int?
-  id_unidade_atendimento                                                  Int?
   dt_cadastro                                                             DateTime?                @default(now()) @db.Timestamp(6)
   atendimento_atendimento_id_usuario_pacienteTousuario                    atendimento[]            @relation("atendimento_id_usuario_pacienteTousuario")
   atendimento_atendimento_id_usuario_cadTousuario                         atendimento[]            @relation("atendimento_id_usuario_cadTousuario")
@@ -296,7 +330,7 @@ model usuario {
   documentos                                                              documentos[]
   formulario_avaliacao                                                    formulario_avaliacao[]
   formulario_paciente                                                     formulario_paciente[]
-  log_adm_geral                                                           log_adm_geral[]
+  log_adm_geral                                                           log_adm_geral[]          @relation("log_adm_geral_autor")
   log_respostas                                                           log_respostas[]
   pergunta                                                                pergunta[]
   resposta                                                                resposta[]
@@ -304,5 +338,8 @@ model usuario {
   genero                                                                  genero?                  @relation(fields: [id_genero], references: [id_genero], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_genero")
   profissao                                                               profissao?               @relation(fields: [id_profissao], references: [id_profissao], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_prof")
   tipo_usuario                                                            tipo_usuario             @relation(fields: [id_tipo_usuario], references: [id_tipo_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_tipousu")
-  unidade_atendimento_usuario_id_unidade_atendimentoTounidade_atendimento unidade_atendimento?     @relation("usuario_id_unidade_atendimentoTounidade_atendimento", fields: [id_unidade_atendimento], references: [id_unidade_atendimento], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_unidade")
+  situacao_usuario                                                        situacao_usuario         @relation(fields: [id_situacao_usuario], references: [id_situacao_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_situacao")
+  usuario_unidade                                                         usuario_unidade[]        @relation("usuario_unidade_usuario")
+  usuario_unidade_vinculos                                                usuario_unidade[]        @relation("usuario_unidade_vinculo")
+  log_adm_geral_alvo                                                      log_adm_geral[]          @relation("log_adm_geral_alvo")
 }

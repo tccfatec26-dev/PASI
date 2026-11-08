@@ -1,104 +1,71 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { ID_FORMULARIO_TRIAGEM, SituacaoAtendimento, TipoUsuario } from '../common/constants';
+import { SituacaoUsuario, TipoUsuario, ehProfissional } from '../common/constants';
 import type { AuthUser } from '../auth/current-user.decorator';
-import { CreateProfissionalDto } from './dto/create-profissional.dto';
+import { AcessoService } from '../acesso/acesso.service';
+import { VinculoUnidadeService } from '../acesso/vinculo-unidade.service';
+import { conferirSenha, hashSenha } from '../acesso/senha';
+import { TrocarSenhaDto } from '../auth/dto/nova-senha.dto';
 import { CreatePacienteDto } from './dto/create-paciente.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
 
-const SALT_ROUNDS = 10;
-
 @Injectable()
 export class UsuariosService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly acesso: AcessoService,
+    private readonly vinculos: VinculoUnidadeService,
+  ) {}
 
-  async createProfissional(dto: CreateProfissionalDto) {
-    const senha_hash = await bcrypt.hash(dto.senha, SALT_ROUNDS);
-    return this.criar({
-      tipo_usuario: { connect: { id_tipo_usuario: TipoUsuario.PROFISSIONAL } },
-      nome: dto.nome,
-      cpf: dto.cpf,
-      email: dto.email.toLowerCase(),
-      tel_celular: dto.tel_celular,
-      sexo: dto.sexo,
-      senha_hash,
-      profissao: { connect: { id_profissao: dto.id_profissao } },
-      unidade_atendimento_usuario_id_unidade_atendimentoTounidade_atendimento: {
-        connect: { id_unidade_atendimento: dto.id_unidade_atendimento },
-      },
-    });
-  }
-
+  /**
+   * Cadastro do paciente pelo app (RN-USR-05): nasce ativo e Deferido.
+   * Não cria mais o atendimento de Triagem automaticamente (RN-USR-21).
+   */
   async createPaciente(dto: CreatePacienteDto) {
-    const senha_hash = await bcrypt.hash(dto.senha, SALT_ROUNDS);
-
+    const senha_hash = await hashSenha(dto.senha);
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        const usuario = await tx.usuario.create({
-          data: {
-            tipo_usuario: { connect: { id_tipo_usuario: TipoUsuario.PACIENTE } },
-            nome: dto.nome,
-            cpf: dto.cpf,
-            email: dto.email.toLowerCase(),
-            tel_celular: dto.tel_celular,
-            sexo: dto.sexo,
-            dt_nascimento: dto.dt_nascimento ? new Date(dto.dt_nascimento) : null,
-            nac_estrangeira: dto.nac_estrangeira ?? false,
-            cep: dto.cep,
-            logradouro: dto.logradouro,
-            numero: dto.numero,
-            complemento: dto.complemento,
-            bairro: dto.bairro,
-            cidade: dto.cidade,
-            estado: dto.estado,
-            pais: dto.pais,
-            senha_hash,
-            ...(dto.id_genero
-              ? { genero: { connect: { id_genero: dto.id_genero } } }
-              : {}),
-          },
-        });
-
-        await tx.atendimento.create({
-          data: {
-            id_usuario_paciente: usuario.id_usuario,
-            id_situacao_atendimento: SituacaoAtendimento.CRIADO,
-            atendimento_formulario: {
-              create: { id_formulario: ID_FORMULARIO_TRIAGEM },
-            },
-          },
-        });
-
-        return this.semSenha(usuario);
+      const usuario = await this.prisma.usuario.create({
+        data: {
+          tipo_usuario: { connect: { id_tipo_usuario: TipoUsuario.PACIENTE } },
+          situacao_usuario: { connect: { id_situacao_usuario: SituacaoUsuario.DEFERIDO } },
+          ativo: true,
+          nome: dto.nome,
+          cpf: dto.cpf,
+          email: dto.email.toLowerCase(),
+          tel_celular: dto.tel_celular,
+          sexo: dto.sexo,
+          dt_nascimento: dto.dt_nascimento ? new Date(dto.dt_nascimento) : null,
+          nac_estrangeira: dto.nac_estrangeira ?? false,
+          cep: dto.cep,
+          logradouro: dto.logradouro,
+          numero: dto.numero,
+          complemento: dto.complemento,
+          bairro: dto.bairro,
+          cidade: dto.cidade,
+          estado: dto.estado,
+          pais: dto.pais,
+          senha_hash,
+          ...(dto.id_genero ? { genero: { connect: { id_genero: dto.id_genero } } } : {}),
+        },
       });
+      return this.semSegredos(usuario);
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        const campo = (e.meta?.target as string) ?? 'campo único';
-        throw new ConflictException(
-          `Já existe um usuário com este ${this.nomeCampoConflito(campo)}.`,
-        );
-      }
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
-        throw new ConflictException(
-          'Profissão ou unidade de atendimento informada não existe.',
-        );
-      }
-      throw e;
+      throw this.tratarErroUnico(e);
     }
   }
 
   async listPacientes(search: string | undefined, user: AuthUser) {
-    if (user.tipo !== TipoUsuario.PROFISSIONAL) {
+    if (!ehProfissional(user.tipo)) {
       throw new ForbiddenException('Apenas profissionais podem listar pacientes.');
     }
-    const where: Prisma.usuarioWhereInput = { id_tipo_usuario: TipoUsuario.PACIENTE };
+    const where: Prisma.usuarioWhereInput = { id_tipo_usuario: TipoUsuario.PACIENTE, ativo: true };
     if (search?.trim()) {
       const digitos = search.replace(/\D/g, '');
       // Busca por nome sem sensibilidade a maiúsculas nem a acentos.
@@ -135,23 +102,50 @@ export class UsuariosService {
     }
   }
 
+  /** Cadastro completo do próprio usuário, com perfil, situação e unidades. */
   async findById(id: number) {
     const usuario = await this.prisma.usuario.findUnique({
       where: { id_usuario: id },
+      include: {
+        tipo_usuario: { select: { id_tipo_usuario: true, nome: true, descricao: true } },
+        situacao_usuario: true,
+        profissao: { select: { id_profissao: true, nome: true } },
+        genero: { select: { id_genero: true, nome: true } },
+      },
     });
     if (!usuario) {
       throw new NotFoundException('Usuário não encontrado');
     }
-    return this.semSenha(usuario);
+    const unidades = ehProfissional(usuario.id_tipo_usuario) ? await this.vinculos.listar(id) : [];
+    return { ...this.semSegredos(usuario), unidades };
   }
 
-  // Atualiza o cadastro do próprio usuário autenticado. CPF nunca é alterado.
-  async updateMe(id: number, dto: UpdateMeDto) {
-    await this.findById(id);
+  /**
+   * Atualiza o cadastro do próprio usuário. CPF nunca é alterado.
+   * Em Pendência II o e-mail também fica travado (decisão de 08/nov): só a
+   * gestão corrige o e-mail. Perfil e unidades não mudam por aqui.
+   */
+  async updateMe(user: AuthUser, dto: UpdateMeDto) {
+    const atual = await this.prisma.usuario.findUnique({ where: { id_usuario: user.id_usuario } });
+    if (!atual) throw new NotFoundException('Usuário não encontrado');
+
+    const novoEmail = dto.email?.trim().toLowerCase();
+    if (
+      novoEmail !== undefined &&
+      novoEmail !== atual.email &&
+      atual.id_situacao_usuario === SituacaoUsuario.PENDENCIA_II
+    ) {
+      throw new BadRequestException(
+        'O e-mail não pode ser alterado na revisão dos dados. Se estiver errado, fale com a gestão da sua unidade.',
+      );
+    }
+    if (dto.id_profissao !== undefined && !ehProfissional(atual.id_tipo_usuario)) {
+      throw new BadRequestException('Profissão só se aplica a profissionais.');
+    }
 
     const data: Prisma.usuarioUpdateInput = {
       nome: dto.nome,
-      email: dto.email?.toLowerCase(),
+      email: novoEmail,
       tel_celular: dto.tel_celular,
       sexo: dto.sexo,
       dt_nascimento:
@@ -169,58 +163,85 @@ export class UsuariosService {
       cidade: dto.cidade,
       estado: dto.estado,
       pais: dto.pais,
-      ...(dto.id_genero !== undefined
-        ? { genero: { connect: { id_genero: dto.id_genero } } }
-        : {}),
+      ...(dto.id_genero !== undefined ? { genero: { connect: { id_genero: dto.id_genero } } } : {}),
+      ...(dto.id_profissao !== undefined ? { profissao: { connect: { id_profissao: dto.id_profissao } } } : {}),
     };
 
     try {
-      const usuario = await this.prisma.usuario.update({
-        where: { id_usuario: id },
-        data,
-      });
-      return this.semSenha(usuario);
+      await this.prisma.usuario.update({ where: { id_usuario: user.id_usuario }, data });
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        const campo = (e.meta?.target as string) ?? 'campo único';
-        throw new ConflictException(
-          `Já existe um usuário com este ${this.nomeCampoConflito(campo)}.`,
-        );
-      }
-      throw e;
+      throw this.tratarErroUnico(e);
     }
+    return this.findById(user.id_usuario);
   }
 
-  private async criar(data: Prisma.usuarioCreateInput) {
-    try {
-      const usuario = await this.prisma.usuario.create({ data });
-      return this.semSenha(usuario);
-    } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        const campo = (e.meta?.target as string) ?? 'campo único';
-        throw new ConflictException(
-          `Já existe um usuário com este ${this.nomeCampoConflito(campo)}.`,
-        );
-      }
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
-        throw new ConflictException(
-          'Profissão ou unidade de atendimento informada não existe.',
-        );
-      }
-      throw e;
+  /** Pendência II → Deferido (RN-USR-09). */
+  async confirmarDados(user: AuthUser) {
+    const atual = await this.prisma.usuario.findUniqueOrThrow({ where: { id_usuario: user.id_usuario } });
+    if (atual.id_situacao_usuario !== SituacaoUsuario.PENDENCIA_II) {
+      throw new BadRequestException('Não há dados pendentes de confirmação.');
     }
+    await this.prisma.usuario.update({
+      where: { id_usuario: user.id_usuario },
+      data: { situacao_usuario: { connect: { id_situacao_usuario: SituacaoUsuario.DEFERIDO } } },
+    });
+    return this.findById(user.id_usuario);
+  }
+
+  /** Troca de senha com o usuário logado (card Segurança). */
+  async trocarSenha(user: AuthUser, dto: TrocarSenhaDto) {
+    const atual = await this.prisma.usuario.findUniqueOrThrow({ where: { id_usuario: user.id_usuario } });
+    if (!(await conferirSenha(dto.senha_atual, atual.senha_hash))) {
+      throw new BadRequestException('A senha atual não confere.');
+    }
+    if (dto.senha_atual === dto.nova_senha) {
+      throw new BadRequestException('A nova senha precisa ser diferente da senha atual.');
+    }
+    await this.prisma.usuario.update({
+      where: { id_usuario: user.id_usuario },
+      data: { senha_hash: await hashSenha(dto.nova_senha) },
+    });
+    return { message: 'Senha alterada. Use a nova senha no próximo acesso.' };
+  }
+
+  // ---- Unidades do próprio máximo (RN-USR-15) ----
+  vincularPropria(user: AuthUser, idUnidade: number, sede: boolean) {
+    this.acesso.exigirMaximo(user);
+    return this.vinculos.vincular(user.id_usuario, idUnidade, sede, user.id_usuario);
+  }
+
+  desvincularPropria(user: AuthUser, idUnidade: number) {
+    this.acesso.exigirMaximo(user);
+    return this.vinculos.desvincular(user.id_usuario, idUnidade, user.id_usuario);
+  }
+
+  trocarSedePropria(user: AuthUser, idUnidade: number) {
+    this.acesso.exigirMaximo(user);
+    return this.vinculos.trocarSede(user.id_usuario, idUnidade, user.id_usuario);
+  }
+
+  private tratarErroUnico(e: unknown): Error {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      const campo = String(e.meta?.target ?? 'campo único');
+      return new ConflictException(`Já existe um usuário com este ${this.nomeCampoConflito(campo)}.`);
+    }
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+      return new ConflictException('Profissão ou gênero informado não existe.');
+    }
+    return e as Error;
   }
 
   private nomeCampoConflito(target: string): string {
     if (target.includes('cpf')) return 'CPF';
     if (target.includes('email')) return 'e-mail';
-    if (target.includes('tel')) return 'telefone';
+    if (target.includes('tel')) return 'celular';
     return target;
   }
 
-  private semSenha<T extends { senha_hash?: string | null }>(usuario: T) {
-    const { senha_hash, ...resto } = usuario;
+  private semSegredos<T extends { senha_hash?: string | null; senha_reset_token?: string | null }>(u: T) {
+    const { senha_hash, senha_reset_token, ...resto } = u;
     void senha_hash;
+    void senha_reset_token;
     return resto;
   }
 }

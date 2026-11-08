@@ -47,6 +47,14 @@ export class QueryAtendimentoDto {
   @IsString()
   situacoes?: string;
 
+  @ApiPropertyOptional({
+    example: '1,2',
+    description: 'IDs de unidade de atendimento separados por vírgula',
+  })
+  @IsOptional()
+  @IsString()
+  unidades?: string;
+
   @ApiPropertyOptional({ example: '2026-01-01', description: 'Data de cadastro — início do intervalo' })
   @IsOptional()
   @IsDateString()
