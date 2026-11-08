@@ -2,7 +2,7 @@
   "name": "pasi",
   "version": "0.0.1",
   "private": true,
-  "description": "PASI - Plataforma de Apoio ao pré-diagnóstico (monorepo: API + mobile)",
+  "description": "PASI - Plataforma de Atendimento de Sistemas Integrados (monorepo: API + mobile)",
   "workspaces": [
     "apps/*"
   ],

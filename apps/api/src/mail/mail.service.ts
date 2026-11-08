@@ -139,7 +139,7 @@ export class MailService {
 <tr><td style="font:700 22px/1.3 Montserrat,Arial,sans-serif;color:#172944;padding-bottom:12px">${titulo}</td></tr>
 <tr><td style="font:400 15px/1.6 Montserrat,Arial,sans-serif;color:#33445c">${corpo}</td></tr>
 <tr><td style="padding-top:20px"><a href="${this.esc(botao.url)}" style="display:inline-block;background:#2f70df;color:#ffffff;text-decoration:none;font:600 15px/1 Montserrat,Arial,sans-serif;padding:14px 22px;border-radius:12px">${this.esc(botao.texto)}</a></td></tr>
-<tr><td style="padding-top:24px;font:400 12px/1.5 Montserrat,Arial,sans-serif;color:#7a889c">PASI — Plataforma de Apoio ao pré-diagnóstico</td></tr>
+<tr><td style="padding-top:24px;font:400 12px/1.5 Montserrat,Arial,sans-serif;color:#7a889c">PASI — Plataforma de Atendimento de Sistemas Integrados</td></tr>
 </table></td></tr></table></body></html>`;
   }
 }
