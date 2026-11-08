@@ -45,6 +45,7 @@ DELETE FROM usuario;
 UPDATE tipo_usuario SET nome = 'Profissional', descricao = 'Privilégio intermediário: profissional de atendimento, restrito às suas unidades.' WHERE id_tipo_usuario = 1;
 UPDATE tipo_usuario SET nome = 'Paciente', descricao = 'Privilégio mínimo: responde aos formulários pelo app.' WHERE id_tipo_usuario = 2;
 INSERT INTO tipo_usuario (id_tipo_usuario, nome, descricao)
+OVERRIDING SYSTEM VALUE
 SELECT 3, 'Profissional', 'Privilégio máximo: gestão de usuários e acesso a todas as unidades.'
 WHERE NOT EXISTS (SELECT 1 FROM tipo_usuario WHERE id_tipo_usuario = 3);
 SELECT setval(pg_get_serial_sequence('tipo_usuario', 'id_tipo_usuario'),
