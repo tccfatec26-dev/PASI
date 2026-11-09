@@ -49,6 +49,11 @@ export class UpdateMeDto {
   @IsBoolean()
   nac_estrangeira?: boolean;
 
+  @ApiPropertyOptional({ example: 1, description: 'FK para profissao (só profissionais)' })
+  @IsOptional()
+  @IsInt()
+  id_profissao?: number;
+
   @ApiPropertyOptional({ example: 1, description: 'FK para genero (id_genero)' })
   @IsOptional()
   @IsInt()

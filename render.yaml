@@ -46,6 +46,19 @@ services:
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 1d
-      # Base do link de redefinição de senha
+      # Base do link de redefinição de senha (legado; use WEB_URL)
       - key: APP_URL
         sync: false
+      # Endereço do painel web: base do link "redefinir senha" e do botão
+      # "Acessar o PASI" nos e-mails
+      - key: WEB_URL
+        sync: false
+      # Brevo (API HTTPS de e-mail transacional; o Render free bloqueia SMTP).
+      # A chave fica só no painel do Render — nunca no repositório.
+      - key: BREVO_API_KEY
+        sync: false
+      # Remetente validado no Brevo
+      - key: MAIL_FROM_EMAIL
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: PASI

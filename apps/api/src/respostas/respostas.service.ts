@@ -15,12 +15,16 @@ import {
 } from '../common/constants';
 import type { AuthUser } from '../auth/current-user.decorator';
 import { recalcularSituacaoAtendimento } from '../common/situacao-atendimento';
+import { AcessoService } from '../acesso/acesso.service';
 import { RespostaItemDto, SalvarRespostasDto } from './dto/salvar-respostas.dto';
 
 @Injectable()
 export class RespostasService {
   private readonly logger = new Logger(RespostasService.name);
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly acesso: AcessoService,
+  ) {}
 
   // ----------------------------------------------------------------
   // Iniciar o preenchimento de um formulário atribuído (paciente)
@@ -70,12 +74,8 @@ export class RespostasService {
     this.garantirFormularioAtribuido(atendimento, idFormulario);
 
     const idPaciente = atendimento.id_usuario_paciente;
-    if (
-      user.tipo === TipoUsuario.PACIENTE &&
-      idPaciente !== user.id_usuario
-    ) {
-      throw new ForbiddenException('Este atendimento não pertence a você.');
-    }
+    // Paciente: só o dono; intermediário: só unidades dele; máximo: todos.
+    await this.acesso.exigirAcessoAtendimento(user, atendimento);
 
     const formulario = await this.prisma.formulario.findUnique({
       where: { id_formulario: idFormulario },

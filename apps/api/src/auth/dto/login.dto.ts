@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class LoginDto {
   @ApiProperty({
@@ -14,4 +14,13 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty()
   senha: string;
+
+  @ApiPropertyOptional({
+    enum: ['web', 'app'],
+    description:
+      'Onde o login acontece: "web" aceita só profissionais (intermediário e máximo); "app", só pacientes. Sem o campo, aceita todos.',
+  })
+  @IsOptional()
+  @IsIn(['web', 'app'])
+  canal?: 'web' | 'app';
 }

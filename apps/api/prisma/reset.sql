@@ -56,7 +56,19 @@ DELETE FROM formulario WHERE id_formulario NOT IN (2, 6);
 --    (evita violação de FK ao excluir usuários)
 UPDATE pergunta SET id_usuario_cad = NULL;
 
--- 8. Excluir todos os usuários exceto os mantidos
+-- 8. Excluir todos os usuários exceto os mantidos (com os vínculos de
+--    unidade deles — tabela usuario_unidade, criada em 2026-11-08)
+UPDATE unidade_atendimento SET id_usuario_cad = NULL
+WHERE id_usuario_cad IN (
+    SELECT id_usuario FROM usuario WHERE email NOT IN (SELECT email FROM usuarios_mantidos)
+);
+DELETE FROM usuario_unidade
+WHERE id_usuario IN (
+    SELECT id_usuario FROM usuario WHERE email NOT IN (SELECT email FROM usuarios_mantidos)
+)
+   OR id_usuario_vinculo IN (
+    SELECT id_usuario FROM usuario WHERE email NOT IN (SELECT email FROM usuarios_mantidos)
+);
 DELETE FROM usuario
 WHERE email NOT IN (SELECT email FROM usuarios_mantidos);
 

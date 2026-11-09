@@ -20,6 +20,10 @@ export class CreateAtendimentoDto {
   @IsInt()
   id_usuario_paciente: number;
 
+  @ApiProperty({ example: 1, description: 'Unidade de atendimento (obrigatória)' })
+  @IsInt()
+  id_unidade_atendimento: number;
+
   @ApiProperty({
     example: [1, 2],
     description: 'IDs dos formulários atribuídos ao atendimento',

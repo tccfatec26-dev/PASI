@@ -30,7 +30,7 @@ async function bootstrap() {
   // Documentação Swagger em /docs
   const swaggerConfig = new DocumentBuilder()
     .setTitle('PASI API')
-    .setDescription('API da plataforma de apoio ao pré-diagnóstico (PASI)')
+    .setDescription('API da PASI — Plataforma de Atendimento de Sistemas Integrados')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
