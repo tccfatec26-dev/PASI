@@ -5,9 +5,10 @@ import * as usuariosApi from '../api/usuarios';
 import { mensagemErro } from '../api/client';
 import type { Genero, VinculoUnidade } from '../api/types';
 import { PageHead, PanelTitle } from '../components/Layout';
-import { Alerta, Campo, Entrada, EntradaSenha, ListaCriterios, Select, SoLeitura } from '../components/Form';
+import { Campo, Entrada, EntradaSenha, ListaCriterios, Select, SoLeitura } from '../components/Form';
 import { Seg } from '../components/Seg';
 import { Modal } from '../components/Modal';
+import { useAvisos } from '../components/Avisos';
 import { ConfirmaSimples, ItemUnidade, ModalVincular } from '../components/GestaoUnidades';
 import { IcCadeado, IcInfo, IcMais } from '../components/icons';
 import { cpfMascarado, iniciais, soDigitos, telefone } from '../lib/format';
@@ -27,7 +28,7 @@ export function Perfil() {
   const [idGenero, setIdGenero] = useState<number | ''>('');
   const [tentou, setTentou] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  const [aviso, setAviso] = useState<{ tipo: 'success' | 'error'; titulo: string; texto: string } | null>(null);
+  const avisar = useAvisos();
 
   // segurança
   const [atual, setAtual] = useState('');
@@ -67,7 +68,6 @@ export function Perfil() {
     setTentou(true);
     if (!valido || salvando) return;
     setSalvando(true);
-    setAviso(null);
     try {
       const u = await usuariosApi.atualizarMe({
         nome: nome.trim(),
@@ -78,9 +78,9 @@ export function Perfil() {
       });
       definirUsuario(u);
       setTentou(false);
-      setAviso({ tipo: 'success', titulo: 'Dados salvos', texto: 'As alterações do seu cadastro foram salvas.' });
+      avisar({ titulo: 'Dados salvos', texto: 'As alterações do seu cadastro foram salvas.' });
     } catch (e) {
-      setAviso({ tipo: 'error', titulo: 'Não foi possível salvar', texto: mensagemErro(e) });
+      avisar({ tipo: 'error', titulo: 'Não foi possível salvar', texto: mensagemErro(e) });
     } finally {
       setSalvando(false);
     }
@@ -110,10 +110,10 @@ export function Perfil() {
     try {
       const lista = await fn();
       if (usuario) definirUsuario({ ...usuario, unidades: lista });
-      setAviso({ tipo: 'success', titulo: 'Unidades atualizadas', texto: msg });
+      avisar({ titulo: 'Unidades atualizadas', texto: msg });
       void recarregar();
     } catch (e) {
-      setAviso({ tipo: 'error', titulo: 'Não foi possível alterar as unidades', texto: mensagemErro(e) });
+      avisar({ tipo: 'error', titulo: 'Não foi possível alterar as unidades', texto: mensagemErro(e) });
     } finally {
       setOcupado(false);
       setJanela(null);
@@ -144,11 +144,6 @@ export function Perfil() {
       />
 
       <div className="page-body">
-        {aviso && (
-          <Alerta tipo={aviso.tipo} titulo={aviso.titulo}>
-            {aviso.texto}
-          </Alerta>
-        )}
         <section className="panel">
           <header>
             <h2>Dados pessoais</h2>
@@ -251,7 +246,6 @@ export function Perfil() {
             onClick={() => {
               preencher();
               setTentou(false);
-              setAviso(null);
             }}
           >
             Cancelar

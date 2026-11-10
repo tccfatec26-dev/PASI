@@ -36,7 +36,7 @@ export function ModalAcaoUsuario({
   acao: AcaoUsuario;
   alvo: Alvo;
   aoFechar: () => void;
-  aoConcluir: (mensagem: string) => void;
+  aoConcluir: (aviso: { tipo: 'success' | 'info'; titulo: string; texto: string }) => void;
 }) {
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -83,29 +83,39 @@ export function ModalAcaoUsuario({
     setOcupado(true);
     setErro(null);
     try {
-      let msg = '';
       if (acao === 'reenviar') {
         const r = await gestao.reenviarSenha(alvo.id_usuario);
-        msg = r.email_enviado
-          ? `Nova senha provisória enviada para ${alvo.email}. Vale até ${dataHora(r.senha_provisoria_expira_em)}.`
-          : 'A senha foi gerada, mas o e-mail não saiu. Tente reenviar em alguns minutos.';
+        aoConcluir(
+          r.email_enviado
+            ? {
+                tipo: 'success',
+                titulo: 'Senha reenviada',
+                texto: `Nova senha provisória enviada para ${alvo.email}. Vale até ${dataHora(r.senha_provisoria_expira_em)}.`,
+              }
+            : { tipo: 'info', titulo: 'E-mail não enviado', texto: 'A senha foi gerada, mas o e-mail não saiu. Tente reenviar em alguns minutos.' },
+        );
       } else if (acao === 'email') {
         const novo = email.trim().toLowerCase();
         const r = await gestao.corrigirEmail(alvo.id_usuario, novo);
-        msg = r.email_enviado
-          ? `E-mail corrigido. A nova senha provisória foi enviada para ${novo}.`
-          : 'E-mail corrigido, mas a mensagem não saiu. Use “Reenviar senha provisória” em alguns minutos.';
+        aoConcluir(
+          r.email_enviado
+            ? { tipo: 'success', titulo: 'E-mail corrigido', texto: `A nova senha provisória foi enviada para ${novo}.` }
+            : {
+                tipo: 'info',
+                titulo: 'E-mail corrigido, mensagem não enviada',
+                texto: 'Use “Reenviar senha provisória” em alguns minutos.',
+              },
+        );
       } else if (acao === 'promover') {
         await gestao.promover(alvo.id_usuario);
-        msg = `${alvo.nome} agora tem privilégio máximo.`;
+        aoConcluir({ tipo: 'success', titulo: 'Usuário promovido', texto: `${alvo.nome} agora tem privilégio máximo.` });
       } else if (acao === 'inativar') {
         await gestao.inativar(alvo.id_usuario);
-        msg = `${alvo.nome} foi inativado(a).`;
+        aoConcluir({ tipo: 'success', titulo: 'Usuário inativado', texto: `${alvo.nome} não consegue mais entrar ${onde}.` });
       } else {
         await gestao.reativar(alvo.id_usuario);
-        msg = `${alvo.nome} foi reativado(a).`;
+        aoConcluir({ tipo: 'success', titulo: 'Usuário reativado', texto: `${alvo.nome} volta a entrar ${onde}.` });
       }
-      aoConcluir(msg);
     } catch (e) {
       setErro(mensagemErro(e));
       setOcupado(false);

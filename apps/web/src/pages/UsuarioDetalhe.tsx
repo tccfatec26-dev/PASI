@@ -5,7 +5,7 @@ import { mensagemErro } from '../api/client';
 import { SituacaoUsuario, TipoUsuario, type VinculoUnidade } from '../api/types';
 import { useCarregar } from '../hooks';
 import { PageHead, PanelTitle } from '../components/Layout';
-import { Alerta } from '../components/Form';
+import { useAvisos } from '../components/Avisos';
 import { Estado } from '../components/Estado';
 import { ConfirmaSimples, ItemUnidade, ModalVincular } from '../components/GestaoUnidades';
 import { ModalAcaoUsuario, type AcaoUsuario } from '../components/AcoesUsuario';
@@ -35,8 +35,7 @@ export function UsuarioDetalhe() {
   const idU = Number(id);
   const { dados: u, setDados, carregando, erro, recarregar } = useCarregar(() => gestao.detalhar(idU), [idU]);
   const [janela, setJanela] = useState<Janela>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
-  const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const avisar = useAvisos();
   const [ocupado, setOcupado] = useState(false);
 
   if (carregando && !u) return <Estado texto="Carregando usuário…" />;
@@ -58,15 +57,14 @@ export function UsuarioDetalhe() {
   async function operar(fn: () => Promise<VinculoUnidade[]>, msg: string) {
     if (!u) return;
     setOcupado(true);
-    setErroAcao(null);
     try {
       const lista = await fn();
       setDados({ ...u, unidades: lista });
       setJanela(null);
-      setAviso(msg);
+      avisar({ titulo: 'Unidades atualizadas', texto: msg });
       void recarregar();
     } catch (e) {
-      setErroAcao(mensagemErro(e));
+      avisar({ tipo: 'error', titulo: 'Não foi possível alterar as unidades', texto: mensagemErro(e) });
       setJanela(null);
     } finally {
       setOcupado(false);
@@ -100,16 +98,6 @@ export function UsuarioDetalhe() {
       />
 
       <div className="page-body">
-        {aviso && (
-          <Alerta tipo="success" titulo="Pronto">
-            {aviso}
-          </Alerta>
-        )}
-        {erroAcao && (
-          <Alerta tipo="error" titulo="Não foi possível concluir">
-            {erroAcao}
-          </Alerta>
-        )}
         {ehMax && p.somente_leitura && (
           <div className="ps-alert info">
             <IcCadeado lg style={{ color: 'var(--Link)' }} />
@@ -357,9 +345,9 @@ export function UsuarioDetalhe() {
           acao={janela.acao}
           alvo={u}
           aoFechar={() => setJanela(null)}
-          aoConcluir={(msg) => {
+          aoConcluir={(aviso) => {
             setJanela(null);
-            setAviso(msg);
+            avisar(aviso);
             void recarregar();
           }}
         />

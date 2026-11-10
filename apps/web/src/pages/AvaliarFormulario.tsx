@@ -10,6 +10,7 @@ import { useCarregar } from '../hooks';
 import { PageHead, PanelTitle } from '../components/Layout';
 import { Alerta } from '../components/Form';
 import { Modal } from '../components/Modal';
+import { useAvisos } from '../components/Avisos';
 import { Estado } from '../components/Estado';
 import { D, Ic } from '../components/icons';
 import { data, dataHora, protocolo } from '../lib/format';
@@ -30,6 +31,7 @@ export function AvaliarFormulario() {
   const [confirmando, setConfirmando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const avisar = useAvisos();
 
   if (carga.carregando && !carga.dados) return <Estado texto="Carregando respostas…" />;
   if (carga.erro || !carga.dados) return <Estado texto={carga.erro ?? 'Formulário não encontrado.'} erro />;
@@ -51,6 +53,7 @@ export function AvaliarFormulario() {
     try {
       await avApi.avaliar(idAt, idF, obs.trim());
       setConfirmando(false);
+      avisar({ titulo: 'Avaliação registrada', texto: `“${det.formulario.nome}” foi avaliado.` });
       await carga.recarregar();
     } catch (e) {
       setConfirmando(false);

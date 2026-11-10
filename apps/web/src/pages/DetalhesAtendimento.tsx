@@ -7,7 +7,7 @@ import { SituacaoAtendimento as SA, SituacaoFormulario as SF, type AtendimentoFo
 import { useCarregar } from '../hooks';
 import { PageHead, PanelTitle } from '../components/Layout';
 import { Estado } from '../components/Estado';
-import { Alerta } from '../components/Form';
+import { useAvisos } from '../components/Avisos';
 import { Modal, ModalCerteza } from '../components/Modal';
 import { resetarSlides, Slide } from '../components/Slide';
 import { SeloAtendimento, SeloFormulario } from '../components/Situacao';
@@ -24,7 +24,7 @@ export function DetalhesAtendimento() {
   const { dados: a, setDados, carregando, erro } = useCarregar(() => atendApi.obter(idAt), [idAt]);
   const [janela, setJanela] = useState<Janela>(null);
   const [ocupado, setOcupado] = useState(false);
-  const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const avisar = useAvisos();
 
   if (carregando && !a) return <Estado texto="Carregando atendimento…" />;
   if (erro || !a) return <Estado texto={erro ?? 'Atendimento não encontrado.'} erro />;
@@ -40,13 +40,12 @@ export function DetalhesAtendimento() {
 
   async function acao(fn: () => Promise<unknown>, depois?: () => void) {
     setOcupado(true);
-    setErroAcao(null);
     try {
       await fn();
       depois?.();
     } catch (e) {
       setJanela(null);
-      setErroAcao(mensagemErro(e));
+      avisar({ tipo: 'error', titulo: 'Não foi possível concluir', texto: mensagemErro(e) });
       resetarSlides();
     } finally {
       setOcupado(false);
@@ -110,11 +109,6 @@ export function DetalhesAtendimento() {
       />
 
       <div className="page-body">
-        {erroAcao && (
-          <Alerta tipo="error" titulo="Não foi possível concluir">
-            {erroAcao}
-          </Alerta>
-        )}
         <div className="split">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <section className="panel">
@@ -314,6 +308,7 @@ export function DetalhesAtendimento() {
                     () => {
                       setDados({ ...a, id_situacao_atendimento: SA.INATIVO });
                       setJanela(null);
+                      avisar({ titulo: 'Atendimento inativado', texto: `${proto} não recebe mais respostas nem formulários.` });
                     },
                   )
                 }

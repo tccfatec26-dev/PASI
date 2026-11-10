@@ -10,7 +10,8 @@ import { PageHead } from '../components/Layout';
 import { BarraBusca, LinhaEstado, PainelFiltros, Paginacao } from '../components/Lista';
 import { infoSituacaoAtendimento, SeloAtendimento } from '../components/Situacao';
 import { Modal } from '../components/Modal';
-import { Alerta, Select } from '../components/Form';
+import { Select } from '../components/Form';
+import { useAvisos } from '../components/Avisos';
 import { IcCadeado, IcChevron, IcEncerrar, IcLapis, IcMais, IcOlhoAcao } from '../components/icons';
 import { cpfMascarado, data, plural, protocolo } from '../lib/format';
 import { fimDoDia, inicioDoDia } from '../lib/datas';
@@ -38,7 +39,7 @@ export function Atendimentos() {
   const [ap, setAp] = useState<Filtros>(F0);
   const [encerrar, setEncerrar] = useState<Atendimento | null>(null);
   const [encerrando, setEncerrando] = useState(false);
-  const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const avisar = useAvisos();
 
   const { dados, carregando, erro, recarregar } = useCarregar(
     () =>
@@ -72,12 +73,15 @@ export function Atendimentos() {
     setEncerrando(true);
     try {
       await atendApi.encerrar(encerrar.id_atendimento);
+      avisar({
+        titulo: 'Atendimento encerrado',
+        texto: `${protocolo(encerrar.id_atendimento, encerrar.dt_cadastro)} não recebe mais formulários nem alterações.`,
+      });
       setEncerrar(null);
-      setErroAcao(null);
       await recarregar();
     } catch (e) {
       setEncerrar(null);
-      setErroAcao(mensagemErro(e));
+      avisar({ tipo: 'error', titulo: 'Não foi possível encerrar', texto: mensagemErro(e) });
     } finally {
       setEncerrando(false);
     }
@@ -99,11 +103,6 @@ export function Atendimentos() {
       />
 
       <div className="page-body">
-        {erroAcao && (
-          <Alerta tipo="error" titulo="Não foi possível encerrar">
-            {erroAcao}
-          </Alerta>
-        )}
         <section className="panel" aria-label="Lista de atendimentos">
           <BarraBusca
             busca={busca}
