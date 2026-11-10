@@ -22,6 +22,7 @@ export interface Pergunta {
   obrigatoria: boolean | null;
   tipo_pergunta?: { id_tipo_pergunta: number; nome: string };
   opcao_pergunta: Opcao[];
+  _count?: { resposta: number };
 }
 
 export interface Formulario {

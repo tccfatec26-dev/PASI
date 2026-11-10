@@ -118,11 +118,12 @@ export function EntradaSenha({
   valor,
   aoMudar,
   estado,
+  invalido,
   ...resto
 }: Omit<InputProps, 'icone' | 'type'>) {
   const [ver, setVer] = useState(false);
   const rot = ver ? 'Ocultar senha' : 'Mostrar senha';
-  const cls = 'ps-control' + (estado === 'erro' ? ' is-error' : estado === 'sucesso' ? ' is-success' : '');
+  const cls = 'ps-control' + (invalido || estado === 'erro' ? ' is-error' : estado === 'sucesso' ? ' is-success' : '');
   return (
     <div className={cls}>
       <IcCadeado style={{ color: 'var(--Text-muted)' }} />

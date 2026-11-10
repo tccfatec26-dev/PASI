@@ -10,7 +10,7 @@ export function Seg<T extends string | number>({
   papel = 'radiogroup',
   desabilitado = false,
 }: {
-  opcoes: { valor: T; rotulo: string }[];
+  opcoes: { valor: NoInfer<T>; rotulo: string }[];
   valor: T;
   aoMudar: (v: T) => void;
   rotulo?: string;

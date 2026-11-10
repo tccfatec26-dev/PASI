@@ -31,3 +31,28 @@ a:hover { color: #174ea8; }
 
 /* Estado vazio e de carregamento dentro dos painéis */
 .ps .vazio { padding: 32px 24px; text-align: center; font: 500 14px/1.5 var(--font-sans); color: var(--Text-muted); }
+
+/* ---------- Estilos de tela (eram <style> de cada quadro do protótipo) ---------- */
+
+/* Usuários */
+.you-tag { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; margin-left: 8px; border-radius: 999px; background: var(--Disabled-bg); color: var(--Navy-600); font: 700 11px/1 var(--font-sans); }
+
+/* Detalhe do usuário */
+.pg-usuario .ps-check { padding: 4px 0; }
+
+/* Cadastrar profissional (e unidades no Meu perfil) */
+.un-row { display: flex; align-items: center; gap: 16px; padding: 10px 14px; border: 1px solid var(--Border-card); border-radius: 12px; background: var(--White); }
+.un-row.is-on { border-color: var(--Action); background: var(--Softblue-2); }
+.un-row .nm { flex: 1; font: 600 15px/1.3 var(--font-sans); color: var(--Ink); }
+.un-row button { background: none; border: 0; cursor: pointer; }
+.un-row .ps-check { padding: 0; }
+.sede-pick { display: inline-flex; align-items: center; gap: 8px; font: 500 13px/1 var(--font-sans); color: var(--Text-muted); }
+.sede-pick.is-checked { color: var(--Link); }
+.sede-pick[aria-disabled="true"] { opacity: .4; cursor: not-allowed; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.steps li { display: flex; gap: 12px; }
+.steps .n { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font: 700 13px/1 var(--font-sans); background: var(--Softblue); color: var(--Link); }
+.steps strong { display: block; font: 600 14px/1.35 var(--font-sans); color: var(--Ink); }
+.steps span { font: 400 13px/1.45 var(--font-sans); color: var(--Text-muted); }
+.pg-cadastro fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pg-cadastro legend { padding: 0; margin-bottom: 6px; }

@@ -359,11 +359,15 @@ export class FormulariosService {
   private includeDetalhe() {
     return {
       tipo_formulario: true,
+      // painel web: total de perguntas e de respostas no resumo
+      _count: { select: { pergunta: true, formulario_paciente: true } },
       pergunta: {
         orderBy: { id_pergunta: 'asc' as const },
         include: {
           tipo_pergunta: true,
           opcao_pergunta: { orderBy: { id_opcao: 'asc' as const } },
+          // painel web: pergunta respondida não pode ser editada nem excluída
+          _count: { select: { resposta: true } },
         },
       },
     } satisfies Prisma.formularioInclude;
