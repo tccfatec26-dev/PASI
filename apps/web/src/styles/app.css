@@ -1,0 +1,33 @@
+/* Ajustes do painel web sobre o CSS do protótipo (painel.css + ds-bundle.css).
+   No protótipo cada tela era um quadro de 1440×900; aqui a tela ocupa a janela. */
+
+body { margin: 0; }
+a { color: #1d5fcf; }
+a:hover { color: #174ea8; }
+
+/* Telas cheias */
+.app { min-height: 100vh; }
+.auth { min-height: 100vh; }
+
+/* Menu lateral fixo enquanto o conteúdo rola */
+.app > .side-slot { position: sticky; top: 0; height: 100vh; align-self: flex-start; }
+.side { min-height: 0; height: 100vh; overflow-y: auto; box-sizing: border-box; }
+@media (max-width: 824px) {
+  .app > .side-slot { position: static; height: auto; flex-basis: 100%; }
+  .side { width: 100%; height: auto; }
+}
+
+/* Botão "Sair" do menu é um <button> */
+.side button.logout { border: 0; background: transparent; cursor: pointer; padding: 0; }
+
+/* Caixa de confirmação (Revisão dos dados) */
+.confirm { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; }
+
+/* Botões e links desabilitados enquanto a API responde */
+.ps .ps-btn[aria-busy="true"] { cursor: progress; opacity: .8; }
+
+/* Linhas clicáveis da lista */
+.ps .tbl tr.carregando td { color: var(--Text-muted); }
+
+/* Estado vazio e de carregamento dentro dos painéis */
+.ps .vazio { padding: 32px 24px; text-align: center; font: 500 14px/1.5 var(--font-sans); color: var(--Text-muted); }

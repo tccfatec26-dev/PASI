@@ -1,0 +1,5 @@
+/* Tailwind 3 (sem preflight: a base visual é a do protótipo). As utilidades
+   vêm por último para poderem ajustar qualquer componente. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
