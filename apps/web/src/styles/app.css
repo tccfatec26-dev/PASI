@@ -120,8 +120,8 @@ a:hover { color: #174ea8; }
   width: min(380px, calc(100vw - 32px));
   display: flex; align-items: flex-start; gap: 12px;
   padding: 14px 12px 14px 16px; border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--tom) 30%, transparent);
-  background: color-mix(in srgb, var(--tom-bg) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tom) 14%, transparent);
+  background: color-mix(in srgb, var(--tom-bg) 48%, transparent);
   -webkit-backdrop-filter: blur(16px) saturate(170%);
   backdrop-filter: blur(16px) saturate(170%);
   box-shadow: 0 10px 30px rgba(23, 41, 68, .12), 0 2px 6px rgba(23, 41, 68, .06);
@@ -131,7 +131,8 @@ a:hover { color: #174ea8; }
 .avisos .aviso.error { --tom: var(--Error); --tom-bg: var(--Error-bg); }
 .avisos .aviso.info { --tom: var(--Link); --tom-bg: var(--Softblue); }
 .avisos .aviso.saindo { animation: aviso-sai .32s cubic-bezier(.4, 0, .7, .2) forwards; }
-.avisos .aviso-ico { display: inline-flex; color: var(--tom); flex-shrink: 0; }
+.avisos .aviso-ico { display: inline-flex; align-self: center; color: var(--tom); flex-shrink: 0; }
+.ps.avisos .aviso-ico svg.ic { width: 30px; height: 30px; stroke-width: 1.9; }
 .avisos .aviso-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .avisos .aviso-corpo strong { font-weight: 700; color: var(--tom); }
 .avisos .aviso-x {
