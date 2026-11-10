@@ -1,10 +1,16 @@
-import { Fragment, type CSSProperties, type ReactNode } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Fragment, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { Link, Outlet, useLocation } from 'react-router-dom';
+import { useCabecalhoCompacto } from './useCabecalhoCompacto';
 import { Sidebar } from './Sidebar';
 import { IcInfo, IcVoltar } from './icons';
 
 /** Esqueleto das telas logadas: menu lateral + conteúdo (classe .ps.app). */
 export function AppLayout() {
+  const { pathname } = useLocation();
+  // cada tela começa do topo (com o cabeçalho expandido)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
   return (
     <div className="ps app">
       <div className="side-slot">
@@ -50,6 +56,8 @@ export function PageHead({
   estiloBloco?: CSSProperties;
   gapTitulo?: number;
 }) {
+  const cabecalho = useRef<HTMLElement>(null);
+  useCabecalhoCompacto(cabecalho);
   const conteudo = (
     <>
       {voltar && (
@@ -64,8 +72,8 @@ export function PageHead({
     </>
   );
   return (
-    <header className="page-head">
-      <div style={estiloBloco}>
+    <header className="page-head" ref={cabecalho}>
+      <div className="ph-bloco" style={estiloBloco}>
         <nav className="ps-breadcrumb crumbs" aria-label="Caminho">
           {migalhas.map((m, i) => (
             <Fragment key={i}>
@@ -79,11 +87,13 @@ export function PageHead({
           ))}
         </nav>
         {linhaTitulo === 'title-row' ? (
-          <div className="title-row" style={gapTitulo ? { gap: gapTitulo } : undefined}>
+          <div className="title-row ph-title" style={gapTitulo ? { gap: gapTitulo } : undefined}>
             {conteudo}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>{conteudo}</div>
+          <div className="ph-title" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+            {conteudo}
+          </div>
         )}
       </div>
       {acoes && (

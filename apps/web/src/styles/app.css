@@ -56,3 +56,48 @@ a:hover { color: #174ea8; }
 .steps span { font: 400 13px/1.45 var(--font-sans); color: var(--Text-muted); }
 .pg-cadastro fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .pg-cadastro legend { padding: 0; margin-bottom: 6px; }
+
+/* ---------- Cabeçalho que vira barra de vidro ao rolar (todas as telas) ----------
+   Expandido: migalhas em cima, título embaixo (como no protótipo).
+   Compacto (.is-compact): uma só barra fixa no topo, título à esquerda e
+   migalhas à direita, centralizados na vertical, com fundo translúcido e
+   desfocado. A animação entre os dois é feita em useCabecalhoCompacto.ts. */
+.app > .main .page-head {
+  position: sticky; top: 0; z-index: 60;
+  border-bottom: 1px solid transparent;
+  transition: background-color .35s ease, box-shadow .35s ease, border-color .35s ease,
+              backdrop-filter .35s ease, -webkit-backdrop-filter .35s ease, padding .35s ease;
+}
+.app > .main .page-head.is-compact {
+  align-items: center;
+  padding-top: 12px; padding-bottom: 12px;
+  background-color: color-mix(in srgb, var(--Background) 68%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+  border-bottom-color: color-mix(in srgb, var(--Navy) 8%, transparent);
+  box-shadow: 0 10px 28px rgba(40, 75, 130, .08);
+}
+.page-head.is-compact > .ph-bloco {
+  display: flex; flex-direction: row-reverse; align-items: center; justify-content: space-between;
+  gap: 24px; flex: 1 1 auto; min-width: 0;
+}
+.page-head.is-compact .crumbs { margin: 0; flex-shrink: 0; max-width: 45%; overflow: hidden; white-space: nowrap; }
+.page-head.is-compact .ph-title { flex-wrap: nowrap !important; min-width: 0; gap: 10px !important; }
+.page-head.is-compact .ph-title > *, .page-head.is-compact .ph-title .title-row { flex-wrap: nowrap; }
+.page-head.is-compact h1 { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.page-head.is-compact .ps-badge { white-space: nowrap; }
+.ps .page-head.is-compact .back-btn { width: 28px; height: 28px; }
+.ps .page-head.is-compact .back-btn svg.ic { width: 22px; height: 22px; }
+.page-head.is-compact .ph-title .avatar {
+  width: 36px !important; height: 36px !important; line-height: 36px !important; font-size: 13px !important;
+}
+/* as ações do cabeçalho saem de cena na barra compacta (voltam no topo da página) */
+.page-head > .actions { transition: opacity .25s ease, visibility 0s linear 0s; }
+.page-head.is-compact > .actions {
+  position: absolute; right: 24px; top: 50%; translate: 0 -50%;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .2s ease, visibility 0s linear .2s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app > .main .page-head { transition: none; }
+}
