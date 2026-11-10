@@ -61,21 +61,24 @@ a:hover { color: #174ea8; }
    Expandido: migalhas em cima, título embaixo (como no protótipo).
    Compacto (.is-compact): uma só barra fixa no topo, título à esquerda e
    migalhas à direita, centralizados na vertical, com fundo translúcido e
-   desfocado. A animação entre os dois é feita em useCabecalhoCompacto.ts. */
+   desfocado. Ela aparece quando o conteúdo encosta nela; antes disso o
+   cabeçalho rola com a página (top bem negativo = nunca gruda).
+   A animação entre os dois é feita em useCabecalhoCompacto.ts. */
 .app > .main .page-head {
-  position: sticky; top: 0; z-index: 60;
+  position: sticky; top: -4000px; z-index: 60;
   border-bottom: 1px solid transparent;
   transition: background-color .35s ease, box-shadow .35s ease, border-color .35s ease,
               backdrop-filter .35s ease, -webkit-backdrop-filter .35s ease, padding .35s ease;
 }
 .app > .main .page-head.is-compact {
+  top: 0;
   align-items: center;
   padding-top: 12px; padding-bottom: 12px;
-  background-color: color-mix(in srgb, var(--Background) 68%, transparent);
-  -webkit-backdrop-filter: blur(18px) saturate(170%);
-  backdrop-filter: blur(18px) saturate(170%);
-  border-bottom-color: color-mix(in srgb, var(--Navy) 8%, transparent);
-  box-shadow: 0 10px 28px rgba(40, 75, 130, .08);
+  background-color: color-mix(in srgb, var(--Background) 38%, transparent);
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+  backdrop-filter: blur(8px) saturate(180%);
+  border-bottom-color: color-mix(in srgb, var(--Navy) 7%, transparent);
+  box-shadow: 0 8px 24px rgba(40, 75, 130, .06);
 }
 .page-head.is-compact > .ph-bloco {
   display: flex; flex-direction: row-reverse; align-items: center; justify-content: space-between;
