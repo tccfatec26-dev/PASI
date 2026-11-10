@@ -21,7 +21,7 @@ services:
 
   # Painel web do profissional (React + Vite, site estático, plano gratuito)
   - type: web
-    name: pasi-web
+    name: pasi-web-dev
     runtime: static
     # Raiz do monorepo: o package-lock.json dos workspaces fica aqui
     buildCommand: npm ci --workspace apps/web && npm run web:build
