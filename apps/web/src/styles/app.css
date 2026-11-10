@@ -1,0 +1,106 @@
+/* Ajustes do painel web sobre o CSS do protótipo (painel.css + ds-bundle.css).
+   No protótipo cada tela era um quadro de 1440×900; aqui a tela ocupa a janela. */
+
+body { margin: 0; }
+a { color: #1d5fcf; }
+a:hover { color: #174ea8; }
+
+/* Telas cheias */
+.app { min-height: 100vh; }
+.auth { min-height: 100vh; }
+
+/* Menu lateral fixo enquanto o conteúdo rola */
+.app > .side-slot { position: sticky; top: 0; height: 100vh; align-self: flex-start; }
+.side { min-height: 0; height: 100vh; overflow-y: auto; box-sizing: border-box; }
+@media (max-width: 824px) {
+  .app > .side-slot { position: static; height: auto; flex-basis: 100%; }
+  .side { width: 100%; height: auto; }
+}
+
+/* Botão "Sair" do menu é um <button> */
+.side button.logout { border: 0; background: transparent; cursor: pointer; padding: 0; }
+
+/* Caixa de confirmação (Revisão dos dados) */
+.confirm { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; }
+
+/* Botões e links desabilitados enquanto a API responde */
+.ps .ps-btn[aria-busy="true"] { cursor: progress; opacity: .8; }
+
+/* Linhas clicáveis da lista */
+.ps .tbl tr.carregando td { color: var(--Text-muted); }
+
+/* Estado vazio e de carregamento dentro dos painéis */
+.ps .vazio { padding: 32px 24px; text-align: center; font: 500 14px/1.5 var(--font-sans); color: var(--Text-muted); }
+
+/* ---------- Estilos de tela (eram <style> de cada quadro do protótipo) ---------- */
+
+/* Usuários */
+.you-tag { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; margin-left: 8px; border-radius: 999px; background: var(--Disabled-bg); color: var(--Navy-600); font: 700 11px/1 var(--font-sans); }
+
+/* Detalhe do usuário */
+.pg-usuario .ps-check { padding: 4px 0; }
+
+/* Cadastrar profissional (e unidades no Meu perfil) */
+.un-row { display: flex; align-items: center; gap: 16px; padding: 10px 14px; border: 1px solid var(--Border-card); border-radius: 12px; background: var(--White); }
+.un-row.is-on { border-color: var(--Action); background: var(--Softblue-2); }
+.un-row .nm { flex: 1; font: 600 15px/1.3 var(--font-sans); color: var(--Ink); }
+.un-row button { background: none; border: 0; cursor: pointer; }
+.un-row .ps-check { padding: 0; }
+.sede-pick { display: inline-flex; align-items: center; gap: 8px; font: 500 13px/1 var(--font-sans); color: var(--Text-muted); }
+.sede-pick.is-checked { color: var(--Link); }
+.sede-pick[aria-disabled="true"] { opacity: .4; cursor: not-allowed; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.steps li { display: flex; gap: 12px; }
+.steps .n { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font: 700 13px/1 var(--font-sans); background: var(--Softblue); color: var(--Link); }
+.steps strong { display: block; font: 600 14px/1.35 var(--font-sans); color: var(--Ink); }
+.steps span { font: 400 13px/1.45 var(--font-sans); color: var(--Text-muted); }
+.pg-cadastro fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pg-cadastro legend { padding: 0; margin-bottom: 6px; }
+
+/* ---------- Cabeçalho que vira barra de vidro ao rolar (todas as telas) ----------
+   Expandido: migalhas em cima, título embaixo (como no protótipo).
+   Compacto (.is-compact): uma só barra fixa no topo, título à esquerda e
+   migalhas à direita, centralizados na vertical, com fundo translúcido e
+   desfocado. Ela aparece quando o conteúdo encosta nela; antes disso o
+   cabeçalho rola com a página (top bem negativo = nunca gruda).
+   A animação entre os dois é feita em useCabecalhoCompacto.ts. */
+.app > .main .page-head {
+  position: sticky; top: -4000px; z-index: 60;
+  border-bottom: 1px solid transparent;
+  transition: background-color .35s ease, box-shadow .35s ease, border-color .35s ease,
+              backdrop-filter .35s ease, -webkit-backdrop-filter .35s ease, padding .35s ease;
+}
+.app > .main .page-head.is-compact {
+  top: 0;
+  align-items: center;
+  padding-top: 12px; padding-bottom: 12px;
+  background-color: color-mix(in srgb, var(--Background) 38%, transparent);
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+  backdrop-filter: blur(8px) saturate(180%);
+  border-bottom-color: color-mix(in srgb, var(--Navy) 7%, transparent);
+  box-shadow: 0 8px 24px rgba(40, 75, 130, .06);
+}
+.page-head.is-compact > .ph-bloco {
+  display: flex; flex-direction: row-reverse; align-items: center; justify-content: space-between;
+  gap: 24px; flex: 1 1 auto; min-width: 0;
+}
+.page-head.is-compact .crumbs { margin: 0; flex-shrink: 0; max-width: 45%; overflow: hidden; white-space: nowrap; }
+.page-head.is-compact .ph-title { flex-wrap: nowrap !important; min-width: 0; gap: 10px !important; }
+.page-head.is-compact .ph-title > *, .page-head.is-compact .ph-title .title-row { flex-wrap: nowrap; }
+.page-head.is-compact h1 { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.page-head.is-compact .ps-badge { white-space: nowrap; }
+.ps .page-head.is-compact .back-btn { width: 28px; height: 28px; }
+.ps .page-head.is-compact .back-btn svg.ic { width: 22px; height: 22px; }
+.page-head.is-compact .ph-title .avatar {
+  width: 36px !important; height: 36px !important; line-height: 36px !important; font-size: 13px !important;
+}
+/* as ações do cabeçalho saem de cena na barra compacta (voltam no topo da página) */
+.page-head > .actions { transition: opacity .25s ease, visibility 0s linear 0s; }
+.page-head.is-compact > .actions {
+  position: absolute; right: 24px; top: 50%; translate: 0 -50%;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .2s ease, visibility 0s linear .2s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app > .main .page-head { transition: none; }
+}

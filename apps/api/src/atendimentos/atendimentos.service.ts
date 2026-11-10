@@ -383,6 +383,10 @@ export class AtendimentosService {
       usuario_atendimento_id_usuario_pacienteTousuario: {
         select: { id_usuario: true, nome: true, cpf: true, email: true },
       },
+      // quem cadastrou (painel web: "Cadastrado por")
+      usuario_atendimento_id_usuario_cadTousuario: {
+        select: { id_usuario: true, nome: true },
+      },
       atendimento_formulario: {
         include: {
           formulario: {
@@ -395,6 +399,15 @@ export class AtendimentosService {
           id_formulario: true,
           id_situacao_formulario: true,
           situacao_formulario: { select: { nome: true } },
+          // avaliação registrada (painel web: "Avaliado por … em …")
+          formulario_avaliacao: {
+            orderBy: { dt_avaliacao: 'desc' },
+            take: 1,
+            select: {
+              dt_avaliacao: true,
+              usuario: { select: { id_usuario: true, nome: true } },
+            },
+          },
         },
       },
     } satisfies Prisma.atendimentoInclude;

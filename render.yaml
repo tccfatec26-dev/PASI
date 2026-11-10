@@ -19,6 +19,30 @@ services:
       - key: VITE_CONTACT_EMAIL
         sync: false
 
+  # Painel web do profissional (React + Vite, site estático, plano gratuito)
+  - type: web
+    name: pasi-web
+    runtime: static
+    # Raiz do monorepo: o package-lock.json dos workspaces fica aqui
+    buildCommand: npm ci --workspace apps/web && npm run web:build
+    staticPublishPath: apps/web/dist
+    buildFilter:
+      paths:
+        - apps/web/**
+        - package.json
+        - package-lock.json
+    # SPA: toda rota cai no index.html (o React Router resolve no navegador)
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Endereço público da pasi-api, com /api no fim
+      - key: VITE_API_URL
+        sync: false
+
   # API NestJS (plano gratuito: hiberna após ~15 min sem acesso e o disco
   # é efêmero — arquivos em uploads/ somem a cada deploy/reinício)
   - type: web
