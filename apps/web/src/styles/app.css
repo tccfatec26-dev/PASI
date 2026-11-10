@@ -104,3 +104,50 @@ a:hover { color: #174ea8; }
 @media (prefers-reduced-motion: reduce) {
   .app > .main .page-head { transition: none; }
 }
+
+/* ---------- Avisos de ações feitas (canto inferior direito) ----------
+   Mesma tonalidade dos alertas (verde para sucesso, vermelho para erro),
+   com fundo translúcido, desfoque e sombra leve. Entram deslizando da
+   direita para a esquerda e saem de volta para a direita. */
+.avisos {
+  position: fixed; right: 24px; bottom: 24px; z-index: 500;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 12px;
+  pointer-events: none;
+}
+.avisos .aviso {
+  --tom: var(--Success); --tom-bg: var(--Success-bg);
+  pointer-events: auto;
+  width: min(380px, calc(100vw - 32px));
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 12px 14px 16px; border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--tom) 30%, transparent);
+  background: color-mix(in srgb, var(--tom-bg) 70%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(170%);
+  backdrop-filter: blur(16px) saturate(170%);
+  box-shadow: 0 10px 30px rgba(23, 41, 68, .12), 0 2px 6px rgba(23, 41, 68, .06);
+  font: 400 14px/1.45 var(--font-sans); color: var(--Ink);
+  animation: aviso-entra .5s cubic-bezier(.22, .8, .24, 1) both;
+}
+.avisos .aviso.error { --tom: var(--Error); --tom-bg: var(--Error-bg); }
+.avisos .aviso.info { --tom: var(--Link); --tom-bg: var(--Softblue); }
+.avisos .aviso.saindo { animation: aviso-sai .32s cubic-bezier(.4, 0, .7, .2) forwards; }
+.avisos .aviso-ico { display: inline-flex; color: var(--tom); flex-shrink: 0; }
+.avisos .aviso-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.avisos .aviso-corpo strong { font-weight: 700; color: var(--tom); }
+.avisos .aviso-x {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 28px; height: 28px; margin: -4px 0 0; border: 0; border-radius: 8px;
+  background: transparent; color: var(--Text-muted); cursor: pointer;
+}
+.avisos .aviso-x:hover, .avisos .aviso-x:focus-visible { background: color-mix(in srgb, var(--tom) 12%, transparent); color: var(--tom); }
+.avisos .aviso-x svg { width: 16px; height: 16px; }
+@keyframes aviso-entra {
+  from { transform: translateX(calc(100% + 32px)); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes aviso-sai {
+  to { transform: translateX(calc(100% + 32px)); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .avisos .aviso, .avisos .aviso.saindo { animation-duration: .01s; }
+}

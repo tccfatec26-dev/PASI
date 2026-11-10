@@ -7,7 +7,8 @@ import { mensagemErro } from '../api/client';
 import { useAtrasado, useCarregar } from '../hooks';
 import { PageHead } from '../components/Layout';
 import { BarraBusca, LinhaEstado, PainelFiltros, Paginacao } from '../components/Lista';
-import { Alerta, Select } from '../components/Form';
+import { Select } from '../components/Form';
+import { useAvisos } from '../components/Avisos';
 import { Seg } from '../components/Seg';
 import { Modal } from '../components/Modal';
 import { SeloTipo } from '../components/Situacao';
@@ -32,7 +33,7 @@ export function Formularios() {
   const [ap, setAp] = useState<Filtros>(F0);
   const [alvo, setAlvo] = useState<Formulario | null>(null);
   const [ocupado, setOcupado] = useState(false);
-  const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const avisar = useAvisos();
   const { dados: tipos } = useCarregar(() => apoio.tiposFormulario(), []);
 
   const { dados, carregando, erro, recarregar } = useCarregar(
@@ -58,12 +59,17 @@ export function Formularios() {
     try {
       if (alvoInativo) await formApi.reativar(alvo.id_formulario);
       else await formApi.desativar(alvo.id_formulario);
+      avisar({
+        titulo: alvoInativo ? 'Formulário reativado' : 'Formulário desativado',
+        texto: alvoInativo
+          ? `“${alvo.nome}” pode ser atribuído de novo.`
+          : `“${alvo.nome}” não aparece mais para novas atribuições.`,
+      });
       setAlvo(null);
-      setErroAcao(null);
       await recarregar();
     } catch (e) {
       setAlvo(null);
-      setErroAcao(mensagemErro(e));
+      avisar({ tipo: 'error', titulo: 'Não foi possível concluir', texto: mensagemErro(e) });
     } finally {
       setOcupado(false);
     }
@@ -85,11 +91,6 @@ export function Formularios() {
       />
 
       <div className="page-body">
-        {erroAcao && (
-          <Alerta tipo="error" titulo="Não foi possível concluir">
-            {erroAcao}
-          </Alerta>
-        )}
         <section className="panel" aria-label="Lista de formulários">
           <BarraBusca
             busca={busca}

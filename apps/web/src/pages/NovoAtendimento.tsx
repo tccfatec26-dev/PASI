@@ -10,6 +10,7 @@ import { useAtrasado, useCarregar, useUnidadesPermitidas } from '../hooks';
 import { PageHead, PanelTitle } from '../components/Layout';
 import { BarraBusca, PainelFiltros } from '../components/Lista';
 import { Alerta, Select } from '../components/Form';
+import { useAvisos } from '../components/Avisos';
 import { Seg } from '../components/Seg';
 import { IcBusca, IcFormulario } from '../components/icons';
 import { cpf, iniciais, plural } from '../lib/format';
@@ -17,6 +18,7 @@ import { cpf, iniciais, plural } from '../lib/format';
 /** 2.3 Novo atendimento (NovoAtendimento.dc.html). */
 export function NovoAtendimento() {
   const navegar = useNavigate();
+  const avisar = useAvisos();
   const unidades = useUnidadesPermitidas();
 
   // Paciente
@@ -92,6 +94,7 @@ export function NovoAtendimento() {
         formularios: [...sel],
         descricao: descricao.trim() || undefined,
       });
+      avisar({ titulo: 'Atendimento criado', texto: `${paciente.nome} já pode responder pelo app.` });
       navegar(`/atendimentos/${a.id_atendimento}`, { replace: true });
     } catch (e) {
       setErro(mensagemErro(e));

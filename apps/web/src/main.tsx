@@ -8,6 +8,7 @@ import './styles/app.css';
 import './styles/tailwind.css';
 import { installBehaviors } from './behaviors/index.js';
 import { AuthProvider } from './auth/AuthContext';
+import { AvisosProvider } from './components/Avisos';
 import { App } from './App';
 
 installBehaviors();
@@ -16,7 +17,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <AvisosProvider>
+          <App />
+        </AvisosProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

@@ -7,7 +7,8 @@ import { SituacaoUsuario, TipoUsuario } from '../api/types';
 import { useAtrasado, useCarregar } from '../hooks';
 import { PageHead } from '../components/Layout';
 import { BarraBusca, LinhaEstado, PainelFiltros, Paginacao } from '../components/Lista';
-import { Alerta, Select } from '../components/Form';
+import { Select } from '../components/Form';
+import { useAvisos } from '../components/Avisos';
 import { Seg } from '../components/Seg';
 import { ModalAcaoUsuario, type AcaoUsuario } from '../components/AcoesUsuario';
 import { D, Ic, IcMais, IcOlhoAcao } from '../components/icons';
@@ -35,7 +36,7 @@ export function Usuarios() {
   const [rasc, setRasc] = useState<Filtros>(INICIAL);
   const [ap, setAp] = useState<Filtros>(INICIAL);
   const [modal, setModal] = useState<{ acao: AcaoUsuario; alvo: UsuarioLista } | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
+  const avisar = useAvisos();
   const { dados: profissoes } = useCarregar(() => apoio.profissoes(), []);
 
   const filtros: FiltrosUsuarios = {
@@ -60,10 +61,7 @@ export function Usuarios() {
     { id: SituacaoUsuario.DEFERIDO, nome: 'Deferidos', n: c?.deferido ?? 0 },
   ];
   const total = dados?.total ?? 0;
-  const abrir = (acao: AcaoUsuario, alvo: UsuarioLista) => () => {
-    setAviso(null);
-    setModal({ acao, alvo });
-  };
+  const abrir = (acao: AcaoUsuario, alvo: UsuarioLista) => () => setModal({ acao, alvo });
 
   return (
     <>
@@ -80,11 +78,6 @@ export function Usuarios() {
       />
 
       <div className="page-body">
-        {aviso && (
-          <Alerta tipo="success" titulo="Pronto">
-            {aviso}
-          </Alerta>
-        )}
         <section className="panel" aria-label="Lista de usuários">
           <div className="tabs-bar" role="tablist" aria-label="Situação do cadastro">
             {abas.map((a) => (
@@ -231,9 +224,9 @@ export function Usuarios() {
           acao={modal.acao}
           alvo={modal.alvo}
           aoFechar={() => setModal(null)}
-          aoConcluir={(msg) => {
+          aoConcluir={(aviso) => {
             setModal(null);
-            setAviso(msg);
+            avisar(aviso);
             void recarregar();
           }}
         />

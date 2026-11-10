@@ -7,7 +7,8 @@ import { mensagemErro } from '../api/client';
 import { SituacaoAtendimento as SA, SituacaoFormulario as SF } from '../api/types';
 import { useCarregar, useUnidadesPermitidas } from '../hooks';
 import { PageHead, PanelTitle } from '../components/Layout';
-import { Alerta, Campo, Select, SoLeitura } from '../components/Form';
+import { Campo, Select, SoLeitura } from '../components/Form';
+import { useAvisos } from '../components/Avisos';
 import { BarraBusca, PainelFiltros } from '../components/Lista';
 import { Modal } from '../components/Modal';
 import { Seg } from '../components/Seg';
@@ -26,7 +27,7 @@ export function AlterarAtendimento() {
   const [descricao, setDescricao] = useState('');
   const [idUnidade, setIdUnidade] = useState<number | ''>('');
   const [salvando, setSalvando] = useState(false);
-  const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const avisar = useAvisos();
   const [modal, setModal] = useState(false);
 
   useEffect(() => {
@@ -52,26 +53,29 @@ export function AlterarAtendimento() {
   async function salvar() {
     if (!a || salvando) return;
     setSalvando(true);
-    setErroAcao(null);
     try {
       const dados: { descricao?: string; id_unidade_atendimento?: number } = {};
       if (descricao.trim() !== (a.descricao ?? '')) dados.descricao = descricao.trim();
       if (idUnidade !== '' && idUnidade !== a.id_unidade_atendimento) dados.id_unidade_atendimento = Number(idUnidade);
-      if (Object.keys(dados).length) await atendApi.alterar(a.id_atendimento, dados);
+      if (Object.keys(dados).length) {
+        await atendApi.alterar(a.id_atendimento, dados);
+        avisar({ titulo: 'Alterações salvas', texto: `${proto} foi atualizado.` });
+      }
       navegar(`/atendimentos/${a.id_atendimento}`);
     } catch (e) {
-      setErroAcao(mensagemErro(e));
+      avisar({ tipo: 'error', titulo: 'Não foi possível salvar', texto: mensagemErro(e) });
       setSalvando(false);
     }
   }
 
   async function remover(idFormulario: number) {
     if (!a) return;
-    setErroAcao(null);
+    const nomeF = a.atendimento_formulario.find((f) => f.id_formulario === idFormulario)?.formulario.nome;
     try {
       setDados(await atendApi.removerFormulario(a.id_atendimento, idFormulario));
+      avisar({ titulo: 'Formulário removido', texto: `“${nomeF ?? 'Formulário'}” saiu deste atendimento.` });
     } catch (e) {
-      setErroAcao(mensagemErro(e));
+      avisar({ tipo: 'error', titulo: 'Não foi possível remover', texto: mensagemErro(e) });
     }
   }
 
@@ -92,11 +96,6 @@ export function AlterarAtendimento() {
       />
 
       <div className="page-body">
-        {erroAcao && (
-          <Alerta tipo="error" titulo="Não foi possível concluir">
-            {erroAcao}
-          </Alerta>
-        )}
         <section className="panel">
           <header>
             <h2>Dados do atendimento</h2>
@@ -199,6 +198,10 @@ export function AlterarAtendimento() {
             const novo = await atendApi.adicionarFormularios(a.id_atendimento, ids);
             setDados(novo);
             setModal(false);
+            avisar({
+              titulo: ids.length === 1 ? 'Formulário adicionado' : 'Formulários adicionados',
+              texto: `${ids.length} ${ids.length === 1 ? 'formulário entrou' : 'formulários entraram'} neste atendimento.`,
+            });
           }}
         />
       )}

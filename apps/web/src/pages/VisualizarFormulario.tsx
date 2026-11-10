@@ -6,7 +6,7 @@ import * as docApi from '../api/documentos';
 import { mensagemErro } from '../api/client';
 import { useCarregar } from '../hooks';
 import { PageHead } from '../components/Layout';
-import { Alerta } from '../components/Form';
+import { useAvisos } from '../components/Avisos';
 import { Modal } from '../components/Modal';
 import { Estado } from '../components/Estado';
 import { SeloTipo } from '../components/Situacao';
@@ -23,7 +23,7 @@ export function VisualizarFormulario() {
   const { dados: docs } = useCarregar(() => docApi.listar(idF), [idF]);
   const [confirmar, setConfirmar] = useState(false);
   const [ocupado, setOcupado] = useState(false);
-  const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const avisar = useAvisos();
 
   if (carregando && !f) return <Estado texto="Carregando formulário…" />;
   if (erro || !f) return <Estado texto={erro ?? 'Formulário não encontrado.'} erro />;
@@ -37,9 +37,10 @@ export function VisualizarFormulario() {
       const novo = inativo ? await formApi.reativar(f.id_formulario) : await formApi.desativar(f.id_formulario);
       setDados({ ...f, ativo: novo.ativo ?? !inativo });
       setConfirmar(false);
+      avisar({ titulo: inativo ? 'Formulário reativado' : 'Formulário desativado', texto: `“${f.nome}”` });
     } catch (e) {
       setConfirmar(false);
-      setErroAcao(mensagemErro(e));
+      avisar({ tipo: 'error', titulo: 'Não foi possível concluir', texto: mensagemErro(e) });
     } finally {
       setOcupado(false);
     }
@@ -76,11 +77,6 @@ export function VisualizarFormulario() {
       />
 
       <div className="page-body">
-        {erroAcao && (
-          <Alerta tipo="error" titulo="Não foi possível concluir">
-            {erroAcao}
-          </Alerta>
-        )}
         <div className="split">
           <section className="panel">
             <header>

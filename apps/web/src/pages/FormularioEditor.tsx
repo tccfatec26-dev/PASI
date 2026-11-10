@@ -11,6 +11,7 @@ import { PageHead } from '../components/Layout';
 import { Alerta } from '../components/Form';
 import { Estado } from '../components/Estado';
 import { ModalCerteza } from '../components/Modal';
+import { useAvisos } from '../components/Avisos';
 import { ArquivoDoc, SoltarArquivo } from '../components/Documentos';
 import { D, Ic, IcCadeado, IcFormulario, IcLapis, IcMais } from '../components/icons';
 import { nomeTipoPergunta, temOpcoes, TipoPergunta, TIPOS_PERGUNTA } from '../lib/perguntas';
@@ -63,6 +64,7 @@ export function FormularioEditor() {
   const idF = id ? Number(id) : null;
   const novo = idF === null;
   const navegar = useNavigate();
+  const avisar = useAvisos();
   const { dados: tipos } = useCarregar(() => apoio.tiposFormulario(), []);
   const carga = useCarregar(() => (idF ? formApi.obter(idF) : Promise.resolve(null)), [idF]);
   const docsCarga = useCarregar(() => (idF ? docApi.listar(idF) : Promise.resolve([] as Documento[])), [idF]);
@@ -206,9 +208,11 @@ export function FormularioEditor() {
           perguntas: perguntas.map(paraApi),
         });
         for (const arq of fila) await docApi.enviar(f.id_formulario, arq);
+        avisar({ titulo: 'Formulário criado', texto: `“${nome.trim()}” já pode ser atribuído a atendimentos.` });
         navegar(`/formularios/${f.id_formulario}`, { replace: true });
       } else if (idF) {
         await formApi.alterar(idF, { id_tipo_formulario: tipo, nome: nome.trim(), descricao: descricao.trim() });
+        avisar({ titulo: 'Formulário salvo', texto: `As alterações de “${nome.trim()}” foram salvas.` });
         navegar(`/formularios/${idF}`);
       }
     } catch (e) {
