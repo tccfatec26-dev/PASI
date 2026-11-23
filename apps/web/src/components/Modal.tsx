@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { IcAlerta, IcCheck, IcFechar, IcInativar } from './icons';
 
 type Icone = 'ok' | 'warning' | 'error' | ReactNode;
@@ -44,6 +44,23 @@ export function Modal({
   const idT = useId();
   const idD = useId();
   const caixa = useRef<HTMLDivElement>(null);
+  const pe = useRef<HTMLElement>(null);
+
+  // O rodapé é um vidro fosco por cima do fim do corpo (o conteúdo passa por
+  // trás dele ao rolar). A altura dele vai para --rodape-h, que o CSS usa como
+  // respiro no fim do corpo. Mede sempre: o rodapé cresce com mensagem de erro
+  // e, no celular, com os botões empilhados.
+  const temRodape = !!rodape;
+  useLayoutEffect(() => {
+    const c = caixa.current;
+    const f = pe.current;
+    if (!c || !f) return;
+    const medir = () => c.style.setProperty('--rodape-h', `${f.offsetHeight}px`);
+    medir();
+    const obs = new ResizeObserver(medir);
+    obs.observe(f);
+    return () => obs.disconnect();
+  }, [temRodape]);
 
   useEffect(() => {
     const anterior = document.activeElement as HTMLElement | null;
@@ -132,7 +149,7 @@ export function Modal({
             {children}
           </div>
         )}
-        {rodape && <footer>{rodape}</footer>}
+        {rodape && <footer ref={pe}>{rodape}</footer>}
       </div>
     </div>
   );

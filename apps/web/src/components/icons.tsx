@@ -54,6 +54,8 @@ export const D = {
   inbox: 'M3 13h5l1 3h6l1-3h5M5 5h14l2 8v6H3v-6z',
   novoDoc: 'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M12 11v6M9 14h6',
   lixeira: 'M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3',
+  /** digitalizar (moldura de leitura com a linha do scanner) */
+  importar: 'M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M7 12h10',
 };
 
 export const IcVoltar = (p: P) => <Ic d={D.voltar} {...p} />;

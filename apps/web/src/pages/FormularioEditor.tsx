@@ -14,6 +14,7 @@ import { EsqArquivos, EsqBotoes, EsqCabecalho, EsqCampos, EsqItens, EsqPainel, T
 import { Modal, ModalCerteza } from '../components/Modal';
 import { useAvisos } from '../components/Avisos';
 import { ArquivoDoc, SoltarArquivo } from '../components/Documentos';
+import { EscanearComIA, type FormularioImportado } from '../components/EscanearFormulario';
 import { D, Ic, IcCadeado, IcFormulario, IcLapis, IcMais } from '../components/icons';
 import { nomeTipoPergunta, temOpcoes, TipoPergunta, TIPOS_PERGUNTA } from '../lib/perguntas';
 import { plural } from '../lib/format';
@@ -98,6 +99,8 @@ export function FormularioEditor() {
   const [salvando, setSalvando] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  /** quantas perguntas vieram do último "Escanear com IA" (mostra o aviso de revisar) */
+  const [importadas, setImportadas] = useState<number | null>(null);
   const tempoDestaque = useRef(0);
 
   useEffect(() => {
@@ -295,7 +298,21 @@ export function FormularioEditor() {
 
   async function salvar() {
     setTentou(true);
-    if (erros.tipo || erros.nome || erros.perguntas || salvando || tipo === null) return;
+    if (erros.tipo || erros.nome || erros.perguntas || tipo === null) {
+      // o botão fica na coluna lateral: sem isso, o erro aparece lá em cima,
+      // fora da tela, e parece que "Salvar" não fez nada
+      const alvo = erros.tipo
+        ? document.querySelector<HTMLElement>('[role="radiogroup"][aria-label="Tipo de formulário"] [role="radio"]')
+        : erros.nome
+          ? document.getElementById('tit')
+          : document.querySelector<HTMLElement>('.add-perguntas button');
+      const semMovimento =
+        document.documentElement.classList.contains('a11y-movimento') || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      alvo?.scrollIntoView({ block: 'center', behavior: semMovimento ? 'auto' : 'smooth' });
+      alvo?.focus({ preventScroll: true });
+      return;
+    }
+    if (salvando) return;
     setSalvando(true);
     setErro(null);
     try {
@@ -319,6 +336,19 @@ export function FormularioEditor() {
       setSalvando(false);
     }
   }
+
+  /** Perguntas escaneadas entram no fim da lista; título e descrição só se estiverem vazios. */
+  function usarImportado(f: FormularioImportado) {
+    const novas = f.perguntas.map((p) => ({ ...p, uid: novaUid() }));
+    setPerguntas([...perguntas, ...novas]);
+    if (!nome.trim() && f.titulo) setNome(f.titulo);
+    if (!descricao.trim() && f.descricao) setDescricao(f.descricao);
+    setImportadas(novas.length);
+    if (novas[0]?.uid) setDestaque({ uid: novas[0].uid, tipo: 'nova' });
+  }
+
+  // escanear do papel: só na criação (na edição cada pergunta é salva na hora)
+  const botaoEscanear = (grande: boolean) => novo && <EscanearComIA aoUsar={usarImportado} pequeno={!grande} />;
 
   const botaoAdicionar = (grande: boolean) => (
     <button type="button" className={'ps-btn primary' + (grande ? '' : ' sm')} onClick={abrirInclusao}>
@@ -414,16 +444,32 @@ export function FormularioEditor() {
             {perguntas.length === 0 ? (
               // Sem perguntas ainda: só o botão. A seção "Perguntas" aparece com a primeira.
               <div className="add-perguntas">
-                {podeIncluir && botaoAdicionar(true)}
+                {podeIncluir && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {botaoEscanear(true)}
+                    {botaoAdicionar(true)}
+                  </div>
+                )}
                 {tentou && erros.perguntas && <MensagemErro>{erros.perguntas}</MensagemErro>}
               </div>
             ) : (
               <section className="panel painel-entra">
                 <header>
                   <h2>Perguntas ({perguntas.length})</h2>
-                  {podeIncluir && botaoAdicionar(false)}
+                  {podeIncluir && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {botaoEscanear(false)}
+                      {botaoAdicionar(false)}
+                    </div>
+                  )}
                 </header>
                 <div className="pb">
+                  {importadas !== null && (
+                    <Alerta tipo="info" titulo={plural(importadas, 'pergunta escaneada', 'perguntas escaneadas')}>
+                      Revise o texto, o tipo de resposta e as opções de cada uma: a leitura automática pode errar letras. Nada foi salvo
+                      ainda — o formulário só é criado em “Salvar formulário”.
+                    </Alerta>
+                  )}
                   {respondido && (
                     <div className="ps-alert warning">
                       <IcCadeado lg style={{ color: 'var(--Warning)' }} />
