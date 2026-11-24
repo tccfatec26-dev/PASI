@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View } from 'react-native';
+import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors } from '../constants/colors';
+import { useCores } from '../acessibilidade/useTema';
 
 interface Props {
   page: number;
@@ -51,12 +52,16 @@ function PageButton({
   enabled: boolean;
   onPress: () => void;
 }) {
-  const cor = enabled ? colors.primary : colors.gray300;
+  const cores = useCores();
+  const cor = enabled ? cores.destaque : cores.texto6;
   const iconEl = <MaterialIcons name={icon} size={16} color={cor} />;
   return (
     <TouchableOpacity
       disabled={!enabled}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Página ${label === 'Anterior' ? 'anterior' : 'seguinte'}`}
+      accessibilityState={{ disabled: !enabled }}
       className={`flex-row items-center gap-1 px-4 py-2 rounded-xl border ${
         enabled ? 'border-primary' : 'border-gray-200'
       }`}

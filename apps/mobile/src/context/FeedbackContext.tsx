@@ -1,15 +1,13 @@
 import React, { createContext, useContext, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  Animated,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import { View, Modal, Animated, Platform } from 'react-native';
+import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '../constants/colors';
+import { lerAviso } from '../acessibilidade/fala';
+import { usePrefsA11y } from '../acessibilidade/preferencias';
+import { useCores, useMovimentoReduzido } from '../acessibilidade/useTema';
+import type { NomeCor } from '../acessibilidade/tema';
+import { CamadaTema } from '../acessibilidade/CamadaTema';
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -30,14 +28,19 @@ const FeedbackContext = createContext<FeedbackContextType | null>(null);
 
 const useNative = Platform.OS !== 'web';
 
-const TOAST_STYLE: Record<ToastType, { bg: string; icon: keyof typeof MaterialIcons.glyphMap }> = {
-  success: { bg: colors.success, icon: 'check-circle' },
-  error: { bg: colors.danger, icon: 'error' },
-  info: { bg: colors.primary, icon: 'info' },
+// fundo de cada tipo de aviso (cor do tema; o texto é sempre "sobre-primária")
+const TOAST_STYLE: Record<ToastType, { bg: NomeCor; icon: keyof typeof MaterialIcons.glyphMap }> = {
+  success: { bg: 'sucesso', icon: 'check-circle' },
+  error: { bg: 'erroForte', icon: 'error' },
+  info: { bg: 'primaria', icon: 'info' },
 };
 
 export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
+  const cores = useCores();
+  const { contraste } = usePrefsA11y();
+  const semMovimento = useMovimentoReduzido();
+  const dAnim = semMovimento ? 0 : 200;
 
   // ---- Toast (exibido na parte inferior, acima dos botões de navegação) ----
   const [toastState, setToastState] = useState<{ message: string; type: ToastType } | null>(null);
@@ -47,8 +50,8 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
 
   const hideToast = () => {
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 0, duration: 180, useNativeDriver: useNative }),
-      Animated.timing(translateY, { toValue: 24, duration: 180, useNativeDriver: useNative }),
+      Animated.timing(opacity, { toValue: 0, duration: dAnim, useNativeDriver: useNative }),
+      Animated.timing(translateY, { toValue: 24, duration: dAnim, useNativeDriver: useNative }),
     ]).start(({ finished }) => {
       if (finished) setToastState(null);
     });
@@ -57,13 +60,16 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   const toast = (message: string, type: ToastType = 'success') => {
     if (timer.current) clearTimeout(timer.current);
     setToastState({ message, type });
+    // RF05/RF06: o aviso vai para o leitor de tela e, com a leitura ligada, é falado
+    lerAviso(type === 'error' ? `Erro. ${message}` : message);
     opacity.setValue(0);
-    translateY.setValue(24);
+    translateY.setValue(semMovimento ? 0 : 24);
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 220, useNativeDriver: useNative }),
-      Animated.timing(translateY, { toValue: 0, duration: 220, useNativeDriver: useNative }),
+      Animated.timing(opacity, { toValue: 1, duration: dAnim, useNativeDriver: useNative }),
+      Animated.timing(translateY, { toValue: 0, duration: dAnim, useNativeDriver: useNative }),
     ]).start();
-    timer.current = setTimeout(hideToast, 3000);
+    // 4 s na tela: tempo para ler (e ouvir) o aviso
+    timer.current = setTimeout(hideToast, 4000);
   };
 
   // ---- Confirm ----
@@ -75,6 +81,7 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   const confirm = (options: ConfirmOptions) =>
     new Promise<boolean>((resolve) => {
       setConfirmState({ options, resolve });
+      lerAviso([options.title, options.message].filter(Boolean).join('. '));
     });
 
   const responder = (resultado: boolean) => {
@@ -90,6 +97,8 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
       {toastState && (
         <Animated.View
           pointerEvents="box-none"
+          accessibilityLiveRegion="polite"
+          accessibilityRole={toastState.type === 'error' ? 'alert' : 'text'}
           style={{
             position: 'absolute',
             // Acima da barra fixa de botões de navegação (FormFooter).
@@ -107,13 +116,16 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: TOAST_STYLE[toastState.type].bg,
+              backgroundColor: cores[TOAST_STYLE[toastState.type].bg],
+              // no alto contraste o fundo é preto: o contorno separa o aviso da tela
+              borderWidth: contraste ? 2 : 0,
+              borderColor: cores.sobrePrimaria,
               paddingVertical: 12,
               paddingHorizontal: 16,
               borderRadius: 14,
               maxWidth: 480,
               width: '100%',
-              shadowColor: colors.black,
+              shadowColor: '#000',
               shadowOpacity: 0.15,
               shadowRadius: 8,
               shadowOffset: { width: 0, height: 2 },
@@ -123,52 +135,59 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
             <MaterialIcons
               name={TOAST_STYLE[toastState.type].icon}
               size={20}
-              color="white"
+              color={cores.sobrePrimaria}
               style={{ marginRight: 10 }}
             />
-            <Text style={{ color: 'white', fontSize: 14, fontWeight: '500', flex: 1 }}>
-              {toastState.message}
-            </Text>
+            <Text className="text-white text-sm font-medium flex-1">{toastState.message}</Text>
           </View>
         </Animated.View>
       )}
 
       {/* Confirm host */}
-      <Modal visible={!!confirmState} transparent animationType="fade" onRequestClose={() => responder(false)}>
-        <View className="flex-1 items-center justify-center bg-black/50 px-8">
-          <View className="bg-white rounded-2xl p-5 w-full" style={{ maxWidth: 380 }}>
-            <Text className="text-primary font-bold text-base mb-2">
-              {confirmState?.options.title}
-            </Text>
-            {confirmState?.options.message ? (
-              <Text className="text-gray-600 text-sm mb-5 leading-5">
-                {confirmState.options.message}
+      <Modal
+        visible={!!confirmState}
+        transparent
+        animationType={semMovimento ? 'none' : 'fade'}
+        onRequestClose={() => responder(false)}
+      >
+        <CamadaTema>
+          <View className="flex-1 items-center justify-center bg-black/50 px-8">
+            <View className="bg-white rounded-2xl p-5 w-full border border-border" style={{ maxWidth: 380 }} accessibilityViewIsModal>
+              <Text className="text-primary font-bold text-base mb-2" accessibilityRole="header">
+                {confirmState?.options.title}
               </Text>
-            ) : (
-              <View className="mb-3" />
-            )}
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                onPress={() => responder(false)}
-                className="flex-1 h-11 border border-border rounded-xl items-center justify-center"
-              >
-                <Text className="text-gray-600 font-medium">
-                  {confirmState?.options.cancelLabel ?? 'Cancelar'}
+              {confirmState?.options.message ? (
+                <Text className="text-gray-600 text-sm mb-5 leading-5">
+                  {confirmState.options.message}
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => responder(true)}
-                className={`flex-1 h-11 rounded-xl items-center justify-center ${
-                  confirmState?.options.destructive ? 'bg-red-600' : 'bg-primary'
-                }`}
-              >
-                <Text className="text-white font-semibold">
-                  {confirmState?.options.confirmLabel ?? 'Confirmar'}
-                </Text>
-              </TouchableOpacity>
+              ) : (
+                <View className="mb-3" />
+              )}
+              <View className="flex-row gap-3">
+                <TouchableOpacity
+                  onPress={() => responder(false)}
+                  className="flex-1 h-11 border border-border rounded-xl items-center justify-center"
+                  accessibilityRole="button"
+                >
+                  <Text className="text-gray-600 font-medium">
+                    {confirmState?.options.cancelLabel ?? 'Cancelar'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => responder(true)}
+                  accessibilityRole="button"
+                  className={`flex-1 h-11 rounded-xl items-center justify-center border-2 ${
+                    confirmState?.options.destructive ? 'bg-red-600 border-red-400' : 'bg-primary border-primary'
+                  }`}
+                >
+                  <Text className="text-white font-semibold">
+                    {confirmState?.options.confirmLabel ?? 'Confirmar'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </CamadaTema>
       </Modal>
     </FeedbackContext.Provider>
   );

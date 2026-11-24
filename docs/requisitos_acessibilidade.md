@@ -5,7 +5,17 @@ O objetivo deste documento é definir os requisitos funcionais e técnicos neces
 
 ### 1.1 Escopo
 * **Nesta etapa:** painel web do profissional (`apps/web`).
-* **Etapa seguinte (fora deste escopo):** aplicativo mobile, na visão do paciente (`apps/mobile`), em branch separada. Os recursos definidos aqui — em especial a leitura em voz alta (RF05) — servirão de base para essa etapa, voltada ao público de baixo letramento (analfabetos, crianças e idosos).
+* **Etapa seguinte:** aplicativo mobile, na visão do paciente (`apps/mobile`), voltado ao público de baixo letramento (analfabetos, crianças e idosos). Implementada — ver 1.2.
+
+### 1.2 Aplicativo mobile (paciente)
+O app oferece as mesmas ferramentas do painel, adaptadas ao celular (código em `apps/mobile/src/acessibilidade/`):
+* **Menu de acessibilidade (RF04):** botão no cabeçalho de todas as telas, inclusive a de entrada. Tamanho do texto, alto contraste, preto e branco, reduzir movimento, leitura em voz alta e redefinir, com as preferências salvas no aparelho. Inclui também o **tema escuro** (Automático, que segue o celular, Claro ou Escuro), pelo conforto visual.
+* **Leitura em voz alta (RF05):** síntese de voz do próprio celular (`expo-speech`), em português do Brasil. No lugar de "clicar", **tocar** em um texto, botão ou campo lê o conteúdo, e o botão continua fazendo a ação. Avisos e erros também são lidos.
+* **Leitores de tela (RF01) e erros (RF06):** rótulos e papéis de acessibilidade para o TalkBack; cada campo é identificado pelo rótulo e leva junto o erro, que é anunciado quando aparece.
+* **Diferenças em relação ao painel:**
+  * **Libras:** o VLibras não tem componente para aplicativos, só para páginas web, por isso fica de fora no app.
+  * **Preto e branco:** muda as cores do app em qualquer aparelho, e as fotos só a partir do Android 12.
+  * **Foco do teclado (RF03):** coberto pelo foco nativo do Android.
 
 ---
 

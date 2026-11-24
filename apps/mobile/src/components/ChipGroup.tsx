@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View } from 'react-native';
+import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 
 export interface ChipOption<T> {
   value: T;
@@ -23,6 +24,7 @@ export function ChipGroup<T extends string | number>({ options, selected, onTogg
           <TouchableOpacity
             key={String(op.value)}
             onPress={() => onToggle(op.value)}
+            textoFala={`${op.label}: ${sel ? 'desmarcado' : 'marcado'}`}
             className={`px-4 py-2 rounded-xl border ${
               sel ? 'bg-primary border-primary' : 'bg-white border-border'
             }`}

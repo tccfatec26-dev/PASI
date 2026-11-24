@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '../acessibilidade/Leitura';
+import { useCores } from '../acessibilidade/useTema';
 import { MaterialIcons } from '@expo/vector-icons';
 
 interface Props {
@@ -8,8 +10,13 @@ interface Props {
 }
 
 export function StepIndicator({ steps, current }: Props) {
+  const cores = useCores();
   return (
-    <View className="flex-row items-start justify-center px-4 py-4">
+    <View
+      className="flex-row items-start justify-center px-4 py-4"
+      accessible
+      accessibilityLabel={`Etapa ${current} de ${steps.length}: ${steps[current - 1] ?? ''}`}
+    >
       {steps.map((label, index) => {
         const stepNum = index + 1;
         const isCompleted = stepNum < current;
@@ -26,7 +33,7 @@ export function StepIndicator({ steps, current }: Props) {
                 }`}
               >
                 {isCompleted ? (
-                  <MaterialIcons name="check" size={14} color="white" />
+                  <MaterialIcons name="check" size={14} color={cores.sobrePrimaria} />
                 ) : (
                   <Text
                     className={`text-sm font-semibold ${

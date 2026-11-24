@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View } from 'react-native';
+import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 
 export interface SegmentOption<T> {
   value: T;
@@ -35,6 +36,7 @@ export function SegmentedControl<T extends string | number | boolean>({
               key={String(op.value)}
               disabled={disabled}
               onPress={() => onChange(op.value)}
+              textoFala={`${label ? `${label}: ` : ''}${op.label}, selecionado`}
               className={`flex-1 h-11 rounded-xl border items-center justify-center ${
                 sel ? 'bg-primary border-primary' : `bg-white ${error ? 'border-red-400' : 'border-border'}`
               }`}
@@ -48,7 +50,11 @@ export function SegmentedControl<T extends string | number | boolean>({
           );
         })}
       </View>
-      {error ? <Text className="text-red-500 text-xs mt-1">{error}</Text> : null}
+      {error ? (
+        <Text className="text-red-500 text-xs mt-1" accessibilityRole="alert" accessibilityLiveRegion="polite">
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, FlatList, ActivityIndicator } from 'react-native';
+import { Text, TouchableOpacity } from '../../acessibilidade/Leitura';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { PacienteNavProp } from '../../navigation/types';
@@ -19,7 +20,7 @@ import {
   SituacaoFormulario,
   SITUACOES_ATENDIMENTO_OPCOES,
 } from '../../constants/dominio';
-import { colors } from '../../constants/colors';
+import { useCores } from '../../acessibilidade/useTema';
 import { formatProtocolo } from '../../utils/format';
 import { formatData, brParaIsoInicioDia, brParaIsoFimDia } from '../../utils/date';
 
@@ -59,6 +60,7 @@ const pendentesCount = (a: Atendimento) =>
   ).length;
 
 export function MeusAtendimentosScreen() {
+  const cores = useCores();
   const navigation = useNavigation<PacienteNavProp>();
   const { usuario } = useAuth();
   const { openDrawer } = useDrawer();
@@ -105,15 +107,22 @@ export function MeusAtendimentosScreen() {
         {podeResponder ? (
           <TouchableOpacity
             onPress={abrir}
-            className="bg-green-500 rounded-xl py-3 flex-row items-center justify-center gap-1.5"
+            className="bg-green-500 border border-green-500 rounded-xl py-3 flex-row items-center justify-center gap-1.5"
+            accessibilityRole="button"
+            accessibilityLabel={`Responder ${count} ${count === 1 ? 'formulário' : 'formulários'}: ${item.descricao ?? 'Atendimento'}`}
           >
-            <MaterialIcons name="edit" size={16} color={colors.white} />
+            <MaterialIcons name="edit" size={16} color={cores.sobrePrimaria} />
             <Text className="text-white text-sm font-semibold">
               Responder formulários ({count})
             </Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity onPress={abrir} className="border border-border rounded-xl py-3 items-center">
+          <TouchableOpacity
+            onPress={abrir}
+            className="border border-border rounded-xl py-3 items-center"
+            accessibilityRole="button"
+            accessibilityLabel={`Visualizar detalhes: ${item.descricao ?? 'Atendimento'}`}
+          >
             <Text className="text-gray-600 text-sm">Visualizar detalhes</Text>
           </TouchableOpacity>
         )}
@@ -135,7 +144,7 @@ export function MeusAtendimentosScreen() {
 
       {lista.loading && lista.items.length === 0 ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={cores.destaque} />
         </View>
       ) : (
         <FlatList
@@ -146,7 +155,7 @@ export function MeusAtendimentosScreen() {
           ListHeaderComponent={
             temPendentes ? (
               <View className="flex-row items-center bg-orange-50 border border-orange-200 rounded-2xl p-4 mb-4">
-                <MaterialIcons name="assignment" size={24} color={colors.warning} style={{ marginRight: 12 }} />
+                <MaterialIcons name="assignment" size={24} color={cores.aviso} style={{ marginRight: 12 }} />
                 <View>
                   <Text className="text-orange-700 font-semibold text-sm">Formulários pendentes</Text>
                   <Text className="text-orange-500 text-xs">Você possui formulários para preencher</Text>

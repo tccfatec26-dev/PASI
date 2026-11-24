@@ -14,7 +14,7 @@ export function SplashScreen() {
   }, [navigation]);
 
   return (
-    <View className="flex-1 bg-primary items-center justify-center">
+    <View className="flex-1 bg-cabecalho items-center justify-center">
       <View className="items-center flex-1 justify-center">
         <Image
           source={require('../../assets/logo.png')}
@@ -24,9 +24,9 @@ export function SplashScreen() {
         />
       </View>
       <View className="flex-row gap-2 mb-12">
-        <View className="w-2 h-2 rounded-full bg-white/40" />
-        <View className="w-2 h-2 rounded-full bg-white" />
-        <View className="w-2 h-2 rounded-full bg-white/40" />
+        <View className="w-2 h-2 rounded-full bg-sobre-primaria/40" />
+        <View className="w-2 h-2 rounded-full bg-sobre-primaria" />
+        <View className="w-2 h-2 rounded-full bg-sobre-primaria/40" />
       </View>
     </View>
   );
