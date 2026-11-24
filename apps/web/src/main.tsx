@@ -7,6 +7,7 @@ import './styles/ds-bundle.css';
 import './styles/app.css';
 import './styles/dark.css';
 import './styles/ajustes.css';
+import './styles/responsivo.css';
 import './styles/acessibilidade.css';
 import './styles/tailwind.css';
 import { installBehaviors } from './behaviors/index.js';

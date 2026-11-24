@@ -13,6 +13,7 @@ import {
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useCabecalhoCompacto } from './useCabecalhoCompacto';
 import { Sidebar } from './Sidebar';
+import { NavMovel } from './NavMovel';
 import { Ic, IcInfo, IcVoltar } from './icons';
 
 const CHAVE_MENU = 'pasi.menuOculto';
@@ -114,6 +115,10 @@ export function AppLayout() {
         <main className="main" inert={(gaveta && aberta) || undefined}>
           <Outlet />
         </main>
+        {/* celular (até 560px): barra superior e abas inferiores; fora dessa largura ficam ocultas */}
+        <div className="nav-movel-slot" inert={(gaveta && aberta) || undefined}>
+          <NavMovel aoAbrirMenu={abrir} />
+        </div>
       </div>
     </MenuContexto.Provider>
   );
