@@ -11,7 +11,6 @@ import { Campo, Select, SoLeitura, MensagemErro } from '../components/Form';
 import { useAvisos } from '../components/Avisos';
 import { BarraBusca, PainelFiltros } from '../components/Lista';
 import { Modal } from '../components/Modal';
-import { Seg } from '../components/Seg';
 import { Estado } from '../components/Estado';
 import { EsqCabecalho, EsqCampos, EsqEscolhas, EsqItens, EsqPainel, TelaCarregando } from '../components/Esqueleto';
 import { SeloAtendimento, SeloFormulario } from '../components/Situacao';
@@ -306,14 +305,17 @@ function ModalAdicionar({
           }}
         >
           <div className="fg">
-            <span className="ps-label">Tipo de unidade</span>
-            <Seg
-              papel="group"
-              rotulo="Tipo de unidade"
-              valor={fRasc}
-              aoMudar={setFRasc}
-              opcoes={[{ valor: 'todos' as const, rotulo: 'Todos' }, ...(tipos ?? []).map((t) => ({ valor: t.id_tipo_formulario, rotulo: t.nome }))]}
-            />
+            <label className="ps-label" htmlFor="f-tipo">
+              Tipo de unidade
+            </label>
+            <Select id="f-tipo" valor={fRasc} aoMudar={(v) => setFRasc(v === 'todos' ? 'todos' : Number(v))}>
+              <option value="todos">Todos</option>
+              {(tipos ?? []).map((t) => (
+                <option key={t.id_tipo_formulario} value={t.id_tipo_formulario}>
+                  {t.nome}
+                </option>
+              ))}
+            </Select>
           </div>
         </PainelFiltros>
         {erro && <MensagemErro>{erro}</MensagemErro>}
