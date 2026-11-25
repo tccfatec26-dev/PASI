@@ -388,3 +388,134 @@ html.a11y-movimento .ps.app.em-gaveta > .side-slot, html.a11y-movimento .gaveta-
   /* texto do deslize cabe na faixa */
   .slide-txt { font-size: 15px; padding-left: 60px; }
 }
+
+/* ---------- Importar formulário em papel (OCR) ---------- */
+.ocr-lista { margin: 0; padding: 0 0 0 26px; display: flex; flex-direction: column; gap: 12px; }
+.ocr-lista li { padding: 0 0 12px 4px; border-bottom: 1px solid var(--Border-card); }
+.ocr-lista li:last-child { border-bottom: 0; padding-bottom: 0; }
+.ocr-lista li::marker { color: var(--Text-muted); font-weight: 600; }
+.ocr-lista strong { display: block; font-weight: 600; color: var(--Navy-600); }
+.ocr-lista .selos-linha { margin-top: 6px; }
+.ocr-opcoes { display: block; margin-top: 6px; font-size: 13px; color: var(--Text-muted); }
+.ocr-ignoradas summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--Navy-600); }
+.ocr-ignoradas ul { margin: 8px 0 0; padding-left: 20px; font-size: 13px; color: var(--Text-muted); }
+
+/* ---------- Escanear com IA: botão com gradiente animado (azuis do logo PASI) ---------- */
+.ps .btn-escanear {
+  --escanear-g: linear-gradient(100deg, #0b3d72 0%, #0469d9 20%, #4485f4 38%, #9cc2ff 50%, #4485f4 62%, #0469d9 80%, #0b3d72 100%);
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 8px;
+  min-height: var(--size-control-md); padding: 0 20px; border: 0; border-radius: 12px; cursor: pointer;
+  color: #fff; font: 700 15px var(--font-sans); letter-spacing: .01em;
+  background: var(--escanear-g); background-size: 200% 100%; animation: escanear-gradiente 4s linear infinite;
+  box-shadow: 0 8px 20px -8px rgba(4, 105, 217, .65); transition: transform .15s ease, box-shadow .15s ease;
+}
+/* halo do mesmo gradiente, desfocado, atrás do botão */
+.ps .btn-escanear::before {
+  content: ""; position: absolute; inset: -3px; z-index: -1; border-radius: 15px;
+  background: var(--escanear-g); background-size: 200% 100%; animation: escanear-gradiente 4s linear infinite;
+  filter: blur(10px); opacity: .5; transition: opacity .2s ease;
+}
+.ps .btn-escanear:hover { transform: translateY(-1px); box-shadow: 0 12px 26px -10px rgba(4, 105, 217, .8); }
+.ps .btn-escanear:hover::before { opacity: .8; }
+.ps .btn-escanear:active { transform: translateY(0); }
+.ps .btn-escanear:focus-visible { outline: 3px solid var(--Focus); outline-offset: 3px; }
+.ps .btn-escanear strong { font-weight: 700; }
+.ps .btn-escanear.sm { min-height: var(--size-control-sm); padding: 0 14px; font-size: 13px; border-radius: 10px; }
+@keyframes escanear-gradiente { from { background-position: 0% 0; } to { background-position: 200% 0; } }
+
+/* ---------- Janela de escanear: miniaturas lado a lado ---------- */
+.ps .escanear-miniaturas { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 12px; }
+.ps .miniatura {
+  position: relative; flex: 0 0 auto; width: 104px; height: 138px; border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--Border-card); background: var(--Softblue); transition: opacity .3s ease, filter .3s ease, box-shadow .3s ease;
+}
+.ps .miniatura img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ps .miniatura .pag {
+  position: absolute; left: 6px; bottom: 8px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+  background: rgba(11, 61, 114, .88); color: #fff; font: 700 11px/20px var(--font-sans); text-align: center;
+}
+.ps .miniatura .tirar {
+  position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border: 0; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, .94); color: #172944;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .2);
+}
+.ps .miniatura .tirar:hover { background: #fff1f1; color: #c42b33; }
+.ps .miniatura .tirar:focus-visible { outline: 3px solid var(--Focus); outline-offset: 1px; }
+.ps .miniatura .tirar svg { width: 14px; height: 14px; }
+/* durante a leitura: as que esperam ficam apagadas, a que está sendo lida brilha */
+.ps .escanear-miniaturas.is-processando .is-espera { opacity: .5; filter: grayscale(.7); }
+.ps .miniatura.is-lendo { border-color: transparent; box-shadow: 0 0 0 2px #4485f4, 0 0 24px rgba(68, 133, 244, .6); }
+
+/* brilho de leitura (no estilo do Google Lens, nas cores do PASI): faixa de
+   gradiente passeando pela imagem, manchas de luz girando e uma linha de varredura */
+.ps .miniatura .brilho {
+  /* mistura normal com cores translúcidas: a folha é quase toda branca, e
+     "screen" sobre branco não apareceria */
+  position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  background: linear-gradient(125deg, rgba(11, 61, 114, .08) 8%, rgba(4, 105, 217, .38) 28%, rgba(68, 133, 244, .42) 44%,
+    rgba(156, 194, 255, .5) 52%, rgba(68, 133, 244, .42) 60%, rgba(4, 105, 217, .38) 76%, rgba(11, 61, 114, .08) 94%);
+  background-size: 260% 260%; animation: brilho-mover 2.4s ease-in-out infinite alternate;
+}
+.ps .miniatura .brilho::before {
+  content: ""; position: absolute; inset: -45%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(156, 194, 255, .6), transparent 30%),
+    radial-gradient(circle at 72% 58%, rgba(4, 105, 217, .45), transparent 34%),
+    radial-gradient(circle at 38% 82%, rgba(11, 61, 114, .35), transparent 28%);
+  animation: brilho-girar 3.2s linear infinite;
+}
+.ps .miniatura .brilho::after {
+  content: ""; position: absolute; left: -10%; right: -10%; height: 22%; top: -30%;
+  background: linear-gradient(180deg, transparent, rgba(68, 133, 244, .35) 40%, rgba(156, 194, 255, .95) 50%, rgba(68, 133, 244, .35) 60%, transparent);
+  box-shadow: 0 0 18px rgba(68, 133, 244, .6); animation: brilho-varrer 1.7s ease-in-out infinite;
+}
+.ps .miniatura .barra { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255, 255, 255, .55); }
+.ps .miniatura .barra i { display: block; height: 100%; background: linear-gradient(90deg, #0469d9, #9cc2ff); transition: width .3s ease; }
+.ps .miniatura .selo-ok {
+  position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; background: #256b42; color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .25); animation: selo-entra .4s cubic-bezier(.2, .9, .25, 1.4) both;
+}
+.ps .miniatura .selo-ok svg { width: 15px; height: 15px; }
+@keyframes brilho-mover { from { background-position: 0% 0%; } to { background-position: 100% 100%; } }
+@keyframes brilho-girar { to { transform: rotate(360deg); } }
+@keyframes brilho-varrer { from { top: -30%; } to { top: 104%; } }
+@keyframes selo-entra { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+.ps .escanear-dica { margin: 0; font-size: 14px; color: var(--Text-muted); }
+.ps .escanear-status { margin: 0; font: 600 14px var(--font-sans); color: var(--Navy-600); }
+
+/* sem animação (menu de acessibilidade ou preferência do sistema): gradiente parado */
+html.a11y-movimento .ps .btn-escanear, html.a11y-movimento .ps .btn-escanear::before,
+html.a11y-movimento .ps .miniatura .brilho, html.a11y-movimento .ps .miniatura .brilho::before,
+html.a11y-movimento .ps .miniatura .brilho::after, html.a11y-movimento .ps .miniatura .selo-ok { animation: none; }
+html.a11y-movimento .ps .miniatura .brilho::after { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ps .btn-escanear, .ps .btn-escanear::before, .ps .miniatura .brilho, .ps .miniatura .brilho::before,
+  .ps .miniatura .brilho::after, .ps .miniatura .selo-ok { animation: none; }
+  .ps .miniatura .brilho::after { display: none; }
+}
+
+/* ---------- Rodapé das janelas: vidro fosco por cima do fim do conteúdo ---------- */
+/* O rodapé flutua sobre a parte de baixo do corpo: ao rolar, o conteúdo passa
+   por trás dele, desfocado. O corpo ganha um respiro do tamanho do rodapé
+   (--rodape-h, medido pelo Modal) para o fim do conteúdo não ficar escondido.
+   Janela sem corpo (só título e botões) mantém o rodapé normal. */
+.ps .ps-modal:has(> .body) { position: relative; }
+.ps .ps-modal:has(> .body) > footer {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+  background: color-mix(in srgb, var(--Background) 62%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+  border-top: 1px solid color-mix(in srgb, var(--Border-card) 75%, transparent);
+}
+.ps .ps-modal:has(> footer) > .body { padding-bottom: calc(var(--rodape-h, 76px) + 20px); }
+.ps .ps-scrim.vidro .ps-modal:has(> .body) > footer { background: color-mix(in srgb, var(--Background) 42%, transparent); }
+html[data-theme="dark"] .ps .ps-modal:has(> .body) > footer { background: rgba(22, 36, 60, .58); border-top-color: rgba(255, 255, 255, .08); }
+html[data-theme="dark"] .ps .ps-scrim.vidro .ps-modal:has(> .body) > footer { background: color-mix(in srgb, var(--Surface-2) 45%, transparent); }
+@media (max-width: 560px) {
+  .ps .ps-modal:has(> footer) > .body { padding-bottom: calc(var(--rodape-h, 120px) + 18px); }
+}
+/* alto contraste pinta tudo de preto sólido: o brilho cobriria a miniatura
+   em leitura, então ela ganha só um contorno */
+html.a11y-contraste .ps .miniatura .brilho { display: none; }
+html.a11y-contraste .ps .miniatura.is-lendo { outline: 3px solid #00e5ff; outline-offset: 2px; }
+.ps .ocr-ignoradas p { margin: 8px 0 0; font-size: 13px; color: var(--Text-muted); }
