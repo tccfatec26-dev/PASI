@@ -483,6 +483,69 @@ html.a11y-movimento .ps.app.em-gaveta > .side-slot, html.a11y-movimento .gaveta-
 @keyframes selo-entra { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
 .ps .escanear-dica { margin: 0; font-size: 14px; color: var(--Text-muted); }
 .ps .escanear-status { margin: 0; font: 600 14px var(--font-sans); color: var(--Navy-600); }
+.ps .escanear-contagem { margin: 0 0 -6px; font-size: 14px; color: var(--Text-muted); }
+.ps .escanear-contagem strong { color: var(--Navy-600); }
+.ps .escanear-vazio {
+  margin: 0; padding: 18px 16px; border: 1px dashed var(--Border-card); border-radius: 12px;
+  font-size: 14px; color: var(--Text-muted); text-align: center;
+}
+/* página de PDF ainda sem miniatura (gerada quando aparece na tela) */
+.ps .mini-carregando {
+  display: block; width: 100%; height: 100%;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .55) 50%, transparent 70%) var(--Softblue);
+  background-size: 220% 100%; animation: mini-carregando 1.3s linear infinite;
+}
+.ps .mini-carregando.falhou { animation: none; background: var(--Softblue); }
+@keyframes mini-carregando { from { background-position: 120% 0; } to { background-position: -100% 0; } }
+
+/* ---------- Escolha das páginas do PDF ---------- */
+.ps .escolher-paginas {
+  display: flex; flex-direction: column; gap: 12px; padding: 16px;
+  border: 1px solid var(--Border-card); border-radius: 14px;
+}
+.ps .escolher-paginas .ep-topo { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; }
+.ps .escolher-paginas .ep-titulo { min-width: 0; flex: 1 1 260px; }
+.ps .escolher-paginas h3 { margin: 0; font: 700 15px/1.35 var(--font-sans); color: var(--Navy-600); overflow-wrap: anywhere; }
+.ps .escolher-paginas .ep-titulo p { margin: 4px 0 0; font-size: 14px; color: var(--Text-muted); }
+.ps .escolher-paginas .ep-acoes { display: flex; flex-wrap: wrap; gap: 4px; }
+.ps .escolher-paginas .ep-acoes svg { width: 16px; height: 16px; }
+.ps .escolher-paginas .ep-faixa { display: flex; flex-direction: column; gap: 6px; }
+.ps .escolher-paginas .ep-faixa .ps-label { margin: 0; }
+.ps .escolher-paginas .ep-faixa-linha { display: flex; gap: 8px; max-width: 360px; }
+.ps .escolher-paginas .ep-faixa-linha .ps-control { flex: 1; min-height: var(--size-control-md); }
+.ps .escolher-paginas .ep-faixa-linha .ps-control input { padding: 8px 0; }
+.ps .grade-paginas {
+  list-style: none; margin: 0; padding: 4px; display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  max-height: 312px; overflow-y: auto; overscroll-behavior: contain;
+}
+.ps .pagina-pdf {
+  position: relative; display: block; aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden; cursor: pointer;
+  border: 1px solid var(--Border-card); background: var(--Softblue); transition: box-shadow .15s ease, opacity .15s ease;
+}
+.ps .pagina-pdf img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ps .pagina-pdf:hover { box-shadow: 0 0 0 2px var(--Border-input-hover, #9cb3d6); }
+.ps .pagina-pdf.is-marcada { border-color: transparent; box-shadow: 0 0 0 3px var(--Link); }
+.ps .pagina-pdf:has(input:focus-visible) { outline: 3px solid var(--Focus); outline-offset: 3px; }
+.ps .pagina-pdf.is-bloqueada { cursor: not-allowed; opacity: .5; }
+.ps .pagina-pdf.is-bloqueada:hover { box-shadow: none; }
+/* caixa de marcar no canto */
+.ps .pagina-pdf .marca {
+  position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, .94); border: 2px solid #5b6f8f; color: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
+}
+.ps .pagina-pdf.is-marcada .marca { background: var(--Link); border-color: var(--Link); }
+.ps .pagina-pdf .marca svg { width: 14px; height: 14px; stroke-width: 3; }
+.ps .pagina-pdf .num {
+  position: absolute; left: 6px; bottom: 6px; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 10px;
+  background: rgba(11, 61, 114, .88); color: #fff; font: 700 11px/20px var(--font-sans); text-align: center;
+}
+html[data-theme="dark"] .ps .pagina-pdf.is-marcada .marca { color: #0b1a30; }
+html.a11y-contraste .ps .pagina-pdf.is-marcada { outline: 3px solid #00e5ff !important; outline-offset: 2px; }
+html.a11y-contraste .ps .pagina-pdf .marca { border: 2px solid #ffeb3b !important; }
+html.a11y-movimento .ps .mini-carregando { animation: none; }
+@media (prefers-reduced-motion: reduce) { .ps .mini-carregando { animation: none; } }
 
 /* sem animação (menu de acessibilidade ou preferência do sistema): gradiente parado */
 html.a11y-movimento .ps .btn-escanear, html.a11y-movimento .ps .btn-escanear::before,

@@ -13,7 +13,7 @@
  *  - texto sem número seguido de opções ("Percepção do técnico sobre..."):
  *    vira a pergunta dessas opções;
  *  - Sim/Não vira pergunta Sim/Não; 2+ opções viram seleção única; sem opções,
- *    texto longo (ou as "opções em comum", para escalas como a do SCARED);
+ *    pergunta de texto (ou as "opções em comum", para escalas como a do SCARED);
  *  - escala nas colunas do cabeçalho ("0 Não verdadeiro | 1 Às vezes... |
  *    2 Verdadeiro"): sugerida como opções em comum.
  */
