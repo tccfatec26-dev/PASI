@@ -13,6 +13,7 @@ import { HealthModule } from './health/health.module';
 import { MailModule } from './mail/mail.module';
 import { AcessoModule } from './acesso/acesso.module';
 import { GestaoModule } from './gestao/gestao.module';
+import { NotificacoesModule } from './notificacoes/notificacoes.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { GestaoModule } from './gestao/gestao.module';
     PrismaModule,
     MailModule,
     AcessoModule,
+    NotificacoesModule,
     AuthModule,
     UsuariosModule,
     AtendimentosModule,

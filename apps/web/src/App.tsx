@@ -20,6 +20,7 @@ import { Perfil } from './pages/Perfil';
 import { Usuarios } from './pages/Usuarios';
 import { UsuarioDetalhe } from './pages/UsuarioDetalhe';
 import { CadastrarProfissional } from './pages/CadastrarProfissional';
+import { Notificacoes } from './pages/Notificacoes';
 
 function Inicio() {
   const { usuario, carregando } = useAuth();
@@ -64,6 +65,7 @@ export function App() {
           <Route path="/formularios/:id" element={<VisualizarFormulario />} />
           <Route path="/formularios/:id/editar" element={<FormularioEditor />} />
           <Route path="/perfil" element={<Perfil />} />
+          <Route path="/notificacoes" element={<Notificacoes />} />
         </Route>
       </Route>
 

@@ -15,6 +15,7 @@ import { iniciarTema } from './lib/tema';
 import { iniciarAcessibilidade } from './lib/acessibilidade';
 import { AuthProvider } from './auth/AuthContext';
 import { AvisosProvider } from './components/Avisos';
+import { NotificacoesProvider } from './components/Notificacoes';
 import { MenuAcessibilidade } from './components/Acessibilidade';
 import { App } from './App';
 
@@ -27,8 +28,10 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <AuthProvider>
         <AvisosProvider>
-          <App />
-          <MenuAcessibilidade />
+          <NotificacoesProvider>
+            <App />
+            <MenuAcessibilidade />
+          </NotificacoesProvider>
         </AvisosProvider>
       </AuthProvider>
     </BrowserRouter>

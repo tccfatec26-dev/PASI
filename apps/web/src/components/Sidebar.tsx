@@ -6,6 +6,7 @@ import { SituacaoUsuario, TipoUsuario } from '../api/types';
 import { iniciais } from '../lib/format';
 import { contarPendentes } from '../api/gestao';
 import { SeletorTema } from './Tema';
+import { ItemMenuNotificacoes } from './Notificacoes';
 import { IcAtendimentos, IcCadeadoMenu, IcFormulario, IcPessoa, IcUsuarios, Ic, IcFechar, D } from './icons';
 
 const cls = ({ isActive }: { isActive: boolean }) => 'nav-item' + (isActive ? ' is-active' : '');
@@ -62,6 +63,7 @@ export function Sidebar({ aoEsconder, rotuloFechar }: { aoEsconder?: () => void;
               <IcFormulario lg />
               Formulários
             </NavLink>
+            <ItemMenuNotificacoes className={cls} />
           </>
         ) : (
           <>

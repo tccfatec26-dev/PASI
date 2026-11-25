@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { SituacaoUsuario } from '../api/types';
 import { iniciais } from '../lib/format';
 import { contarPendentes } from '../api/gestao';
+import { SinoMovel } from './Notificacoes';
 import { IcAtendimentos, IcCadeadoMenu, IcFormulario, IcPessoa, IcUsuarios } from './icons';
 
 const cls = ({ isActive }: { isActive: boolean }) => 'aba-movel' + (isActive ? ' is-active' : '');
@@ -37,6 +38,7 @@ export function NavMovel({ aoAbrirMenu }: { aoAbrirMenu: () => void }) {
       <header className="topo-movel">
         <img src={logo} alt="PASI" />
         <span className="topo-movel-rotulo">Profissional</span>
+        {!bloqueado && <SinoMovel />}
         <button type="button" className="topo-movel-avatar" onClick={aoAbrirMenu} aria-label="Abrir menu: aparência e sair" aria-haspopup="dialog">
           {iniciais(usuario?.nome)}
         </button>

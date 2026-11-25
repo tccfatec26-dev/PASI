@@ -142,7 +142,8 @@ export function Select({
   descritoPor?: string;
 }) {
   return (
-    <div className={'ps-control' + (invalido ? ' is-error' : '')}>
+    // ps-select: a lista ocupa o campo inteiro (a seta também abre)
+    <div className={'ps-control ps-select' + (invalido ? ' is-error' : '') + (desabilitado ? ' is-disabled' : '')}>
       <select
         id={id}
         value={valor}

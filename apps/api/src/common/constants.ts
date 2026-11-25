@@ -66,6 +66,16 @@ export const SituacaoFormulario = {
   AVALIADO: 4,
 } as const;
 
+/** tipo_notificacao (ids fixos do script 2026-11-25_notificacoes.sql). */
+export const TipoNotificacao = {
+  /** Paciente: foi incluído em um atendimento. */
+  INCLUIDO_ATENDIMENTO: 1,
+  /** Paciente: recebeu formulários novos em um atendimento que já existia. */
+  NOVOS_FORMULARIOS: 2,
+  /** Profissional que criou o atendimento: o paciente concluiu um formulário. */
+  FORMULARIO_RESPONDIDO: 3,
+} as const;
+
 /** tipo_pergunta (ordem da carga inicial do DDL). */
 export const TipoPergunta = {
   TEXTO: 1,

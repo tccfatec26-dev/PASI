@@ -16,6 +16,7 @@ import {
 import type { AuthUser } from '../auth/current-user.decorator';
 import { recalcularSituacaoAtendimento } from '../common/situacao-atendimento';
 import { AcessoService } from '../acesso/acesso.service';
+import { NotificacoesService } from '../notificacoes/notificacoes.service';
 import { RespostaItemDto, SalvarRespostasDto } from './dto/salvar-respostas.dto';
 
 @Injectable()
@@ -24,6 +25,7 @@ export class RespostasService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly acesso: AcessoService,
+    private readonly notificacoes: NotificacoesService,
   ) {}
 
   // ----------------------------------------------------------------
@@ -316,6 +318,8 @@ export class RespostasService {
     });
 
     await recalcularSituacaoAtendimento(this.prisma, idAtendimento);
+    // avisa o profissional que criou o atendimento (e só ele)
+    await this.notificacoes.formularioRespondido(idAtendimento, idFormulario, user);
 
     return this.detalhar(idAtendimento, idFormulario, user);
   }
