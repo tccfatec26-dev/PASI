@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal } from 'react-native';
+import { View, TextInput, Modal } from 'react-native';
+import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 import { MaterialIcons } from '@expo/vector-icons';
 import { maskDataBr, dateParaBr, brParaDate } from '../utils/date';
-import { colors } from '../constants/colors';
+import { useCores, useMovimentoReduzido } from '../acessibilidade/useTema';
+import { lerSeAtivo } from '../acessibilidade/fala';
+import { CamadaTema } from '../acessibilidade/CamadaTema';
 
 const DIAS_SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const MESES = [
@@ -22,6 +25,8 @@ interface Props {
  * (modal próprio, funciona em web e nativo).
  */
 export function DateField({ label, value, onChange, placeholder = 'dd/mm/aaaa' }: Props) {
+  const cores = useCores();
+  const semMovimento = useMovimentoReduzido();
   const [showCal, setShowCal] = useState(false);
   const hoje = new Date();
   const selecionada = brParaDate(value);
@@ -74,88 +79,112 @@ export function DateField({ label, value, onChange, placeholder = 'dd/mm/aaaa' }
         <TextInput
           className="flex-1 text-sm text-gray-800"
           placeholder={placeholder}
-          placeholderTextColor={colors.placeholder}
+          placeholderTextColor={cores.placeholder}
           value={value}
           onChangeText={(t) => onChange(maskDataBr(t))}
+          accessibilityLabel={label ? `${label} (data)` : 'Data'}
+          onFocus={() => lerSeAtivo(`${label ?? 'Data'}: ${value || placeholder}`)}
           keyboardType="numeric"
           maxLength={10}
         />
-        <TouchableOpacity onPress={abrirCalendario} className="w-9 h-9 items-center justify-center">
-          <MaterialIcons name="calendar-today" size={18} color={colors.primary} />
+        <TouchableOpacity
+          onPress={abrirCalendario}
+          className="w-9 h-9 items-center justify-center"
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir calendário${label ? ` (${label})` : ''}`}
+        >
+          <MaterialIcons name="calendar-today" size={18} color={cores.destaque} />
         </TouchableOpacity>
       </View>
 
       {/* Calendário */}
-      <Modal visible={showCal} transparent animationType="fade" onRequestClose={() => setShowCal(false)}>
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={() => setShowCal(false)}
-          className="flex-1 items-center justify-center bg-black/50 px-8"
-        >
-          <TouchableOpacity activeOpacity={1} className="bg-white rounded-2xl p-4 w-full" style={{ maxWidth: 340 }}>
-            {/* Navegação do mês */}
-            <View className="flex-row items-center justify-between mb-3">
-              <TouchableOpacity onPress={() => mudarMes(-1)} className="w-9 h-9 items-center justify-center">
-                <MaterialIcons name="chevron-left" size={24} color={colors.primary} />
-              </TouchableOpacity>
-              <Text className="text-primary font-bold text-sm">
-                {MESES[mesVisivel.mes]} {mesVisivel.ano}
-              </Text>
-              <TouchableOpacity onPress={() => mudarMes(1)} className="w-9 h-9 items-center justify-center">
-                <MaterialIcons name="chevron-right" size={24} color={colors.primary} />
-              </TouchableOpacity>
-            </View>
+      <Modal visible={showCal} transparent animationType={semMovimento ? 'none' : 'fade'} onRequestClose={() => setShowCal(false)}>
+        <CamadaTema>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setShowCal(false)}
+            lerAoTocar={false}
+            accessibilityLabel="Fechar calendário"
+            className="flex-1 items-center justify-center bg-black/50 px-8"
+          >
+            <TouchableOpacity activeOpacity={1} className="bg-white rounded-2xl p-4 w-full" style={{ maxWidth: 340 }}>
+              {/* Navegação do mês */}
+              <View className="flex-row items-center justify-between mb-3">
+                <TouchableOpacity
+                  onPress={() => mudarMes(-1)}
+                  className="w-9 h-9 items-center justify-center"
+                  accessibilityRole="button"
+                  accessibilityLabel="Mês anterior"
+                >
+                  <MaterialIcons name="chevron-left" size={24} color={cores.destaque} />
+                </TouchableOpacity>
+                <Text className="text-primary font-bold text-sm" accessibilityRole="header">
+                  {MESES[mesVisivel.mes]} {mesVisivel.ano}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => mudarMes(1)}
+                  className="w-9 h-9 items-center justify-center"
+                  accessibilityRole="button"
+                  accessibilityLabel="Próximo mês"
+                >
+                  <MaterialIcons name="chevron-right" size={24} color={cores.destaque} />
+                </TouchableOpacity>
+              </View>
 
-            {/* Dias da semana */}
-            <View className="flex-row mb-1">
-              {DIAS_SEMANA.map((d, i) => (
-                <View key={i} className="flex-1 items-center">
-                  <Text className="text-xs font-semibold text-gray-400">{d}</Text>
-                </View>
-              ))}
-            </View>
+              {/* Dias da semana */}
+              <View className="flex-row mb-1">
+                {DIAS_SEMANA.map((d, i) => (
+                  <View key={i} className="flex-1 items-center">
+                    <Text className="text-xs font-semibold text-gray-400">{d}</Text>
+                  </View>
+                ))}
+              </View>
 
-            {/* Grade de dias */}
-            <View className="flex-row flex-wrap">
-              {celulas.map((dia, i) => (
-                <View key={i} style={{ width: `${100 / 7}%` }} className="items-center py-0.5">
-                  {dia !== null ? (
-                    <TouchableOpacity
-                      onPress={() => selecionarDia(dia)}
-                      className={`w-9 h-9 rounded-full items-center justify-center ${
-                        ehSelecionado(dia)
-                          ? 'bg-primary'
-                          : ehHoje(dia)
-                            ? 'border border-primary'
-                            : ''
-                      }`}
-                    >
-                      <Text
-                        className={`text-sm ${
-                          ehSelecionado(dia) ? 'text-white font-bold' : 'text-gray-700'
+              {/* Grade de dias */}
+              <View className="flex-row flex-wrap">
+                {celulas.map((dia, i) => (
+                  <View key={i} style={{ width: `${100 / 7}%` }} className="items-center py-0.5">
+                    {dia !== null ? (
+                      <TouchableOpacity
+                        onPress={() => selecionarDia(dia)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${dia} de ${MESES[mesVisivel.mes]} de ${mesVisivel.ano}`}
+                        accessibilityState={{ selected: ehSelecionado(dia) }}
+                        className={`w-9 h-9 rounded-full items-center justify-center ${
+                          ehSelecionado(dia)
+                            ? 'bg-primary'
+                            : ehHoje(dia)
+                              ? 'border border-primary'
+                              : ''
                         }`}
                       >
-                        {dia}
-                      </Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <View className="w-9 h-9" />
-                  )}
-                </View>
-              ))}
-            </View>
+                        <Text
+                          className={`text-sm ${
+                            ehSelecionado(dia) ? 'text-white font-bold' : 'text-gray-700'
+                          }`}
+                        >
+                          {dia}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View className="w-9 h-9" />
+                    )}
+                  </View>
+                ))}
+              </View>
 
-            {/* Ações rápidas */}
-            <View className="flex-row justify-between mt-2">
-              <TouchableOpacity onPress={() => { onChange(''); setShowCal(false); }} className="px-3 py-2">
-                <Text className="text-red-500 text-sm font-medium">Limpar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => { onChange(dateParaBr(hoje)); setShowCal(false); }} className="px-3 py-2">
-                <Text className="text-primary text-sm font-medium">Hoje</Text>
-              </TouchableOpacity>
-            </View>
+              {/* Ações rápidas */}
+              <View className="flex-row justify-between mt-2">
+                <TouchableOpacity onPress={() => { onChange(''); setShowCal(false); }} className="px-3 py-2">
+                  <Text className="text-red-500 text-sm font-medium">Limpar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { onChange(dateParaBr(hoje)); setShowCal(false); }} className="px-3 py-2">
+                  <Text className="text-primary text-sm font-medium">Hoje</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </CamadaTema>
       </Modal>
     </View>
   );

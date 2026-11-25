@@ -1,14 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
-  Text,
   ScrollView,
-  TouchableOpacity,
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Text, TouchableOpacity } from '../../acessibilidade/Leitura';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { PacienteNavProp, PacienteStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -18,7 +17,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { formulariosService, Pergunta, RespostaItem, DetalheFormulario } from '../../services/formularios';
 import { useFeedback } from '../../context/FeedbackContext';
 import { SituacaoFormulario, TipoPergunta, TIPOS_COM_OPCOES } from '../../constants/dominio';
-import { colors } from '../../constants/colors';
+import { useCores } from '../../acessibilidade/useTema';
+import { lerSeAtivo } from '../../acessibilidade/fala';
 import { mensagemErroApi } from '../../utils/errors';
 
 type RouteT = RouteProp<PacienteStackParamList, 'ResponderFormulario'>;
@@ -51,6 +51,7 @@ function initRespostas(perguntas: Pergunta[], respostasAtuais: DetalheFormulario
 }
 
 export function ResponderFormularioScreen() {
+  const cores = useCores();
   const navigation = useNavigation<PacienteNavProp>();
   const { toast, confirm } = useFeedback();
   const { idAtendimento, idFormulario, nomeFormulario } = useRoute<RouteT>().params;
@@ -198,7 +199,7 @@ export function ResponderFormularioScreen() {
   if (loading || !detalhe) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={cores.destaque} />
       </View>
     );
   }
@@ -230,8 +231,13 @@ export function ResponderFormularioScreen() {
         subtitle={`${respondidas} de ${perguntas.length} respondidas`}
         onBack={voltar}
       >
-        <View className="h-1.5 bg-white/20 rounded-full">
-          <View className="h-1.5 bg-white rounded-full" style={{ width: `${progresso * 100}%` }} />
+        <View
+          className="h-1.5 bg-sobre-primaria/20 rounded-full"
+          accessibilityRole="progressbar"
+          accessibilityLabel="Progresso do formulário"
+          accessibilityValue={{ min: 0, max: perguntas.length, now: respondidas, text: `${respondidas} de ${perguntas.length} respondidas` }}
+        >
+          <View className="h-1.5 bg-sobre-primaria rounded-full" style={{ width: `${progresso * 100}%` }} />
         </View>
       </ScreenHeader>
 
@@ -248,7 +254,10 @@ export function ResponderFormularioScreen() {
               <View className="w-7 h-7 rounded-full bg-primary items-center justify-center mr-3 mt-0.5">
                 <Text className="text-white text-xs font-bold">{index + 1}</Text>
               </View>
-              <Text className="flex-1 text-sm font-medium text-gray-800 leading-5">
+              <Text
+                className="flex-1 text-sm font-medium text-gray-800 leading-5"
+                accessibilityLabel={`Pergunta ${index + 1}: ${p.pergunta}${p.obrigatoria ? ', obrigatória' : ''}`}
+              >
                 {p.pergunta}
                 {p.obrigatoria && <Text className="text-red-400"> *</Text>}
               </Text>
@@ -260,7 +269,9 @@ export function ResponderFormularioScreen() {
                 <TextInput
                   className="bg-input-bg border border-border rounded-xl px-4 py-3 text-sm text-gray-800"
                   placeholder="Digite sua resposta..."
-                  placeholderTextColor={colors.placeholder}
+                  placeholderTextColor={cores.placeholder}
+                  accessibilityLabel={`Resposta da pergunta ${index + 1}: ${p.pergunta}`}
+                  onFocus={() => lerSeAtivo(`${p.pergunta}. ${respostas[p.id_pergunta]?.valor_texto || 'Digite sua resposta'}`)}
                   value={respostas[p.id_pergunta]?.valor_texto ?? ''}
                   onChangeText={(t) => setResposta(p.id_pergunta, { valor_texto: t })}
                   multiline
@@ -280,7 +291,9 @@ export function ResponderFormularioScreen() {
               <TextInput
                 className="bg-input-bg border border-border rounded-xl px-4 h-12 text-sm text-gray-800"
                 placeholder="Digite um número"
-                placeholderTextColor={colors.placeholder}
+                placeholderTextColor={cores.placeholder}
+                accessibilityLabel={`Resposta da pergunta ${index + 1}, em número: ${p.pergunta}`}
+                onFocus={() => lerSeAtivo(`${p.pergunta}. ${numeroTexto[p.id_pergunta] || 'Digite um número'}`)}
                 keyboardType="numeric"
                 value={numeroTexto[p.id_pergunta] ?? ''}
                 onChangeText={(t) => onChangeNumero(p.id_pergunta, t)}
@@ -306,6 +319,10 @@ export function ResponderFormularioScreen() {
                       key={String(opt.value)}
                       disabled={concluido}
                       onPress={() => setBooleano(p, opt.value)}
+                      textoFala={`${opt.label}: selecionado`}
+                      accessibilityRole="radio"
+                      accessibilityLabel={`${opt.label} (pergunta ${index + 1})`}
+                      accessibilityState={{ checked: sel, disabled: concluido }}
                       className={`flex-1 h-11 rounded-xl border items-center justify-center ${sel ? 'bg-primary border-primary' : 'bg-white border-border'}`}
                     >
                       <Text className={`text-sm font-medium ${sel ? 'text-white' : 'text-gray-600'}`}>
@@ -326,10 +343,18 @@ export function ResponderFormularioScreen() {
                     key={op.id_opcao}
                     disabled={concluido}
                     onPress={() => toggleOpcao(p, op.id_opcao, p.id_tipo_pergunta === ESCOLHA_UNICA)}
+                    textoFala={
+                      p.id_tipo_pergunta === ESCOLHA_UNICA
+                        ? `${op.texto_opcao}: selecionado`
+                        : `${op.texto_opcao}: ${sel ? 'desmarcado' : 'marcado'}`
+                    }
+                    accessibilityRole={p.id_tipo_pergunta === ESCOLHA_UNICA ? 'radio' : 'checkbox'}
+                    accessibilityLabel={op.texto_opcao}
+                    accessibilityState={{ checked: sel, disabled: concluido }}
                     className={`flex-row items-center p-4 rounded-xl mb-2 border ${sel ? 'bg-primary/5 border-primary' : 'border-border bg-white'}`}
                   >
                     <View className={`w-5 h-5 rounded-full border-2 mr-3 items-center justify-center ${sel ? 'bg-primary border-primary' : 'border-gray-300'}`}>
-                      {sel && <View className="w-2 h-2 rounded-full bg-white" />}
+                      {sel && <View className="w-2 h-2 rounded-full bg-sobre-primaria" />}
                     </View>
                     <Text className={`text-sm ${sel ? 'text-primary font-medium' : 'text-gray-700'}`}>
                       {op.texto_opcao}
@@ -341,9 +366,9 @@ export function ResponderFormularioScreen() {
         ))}
 
         {concluido && (
-          <View className="bg-success-bg border border-success-border rounded-xl p-4 mt-4">
+          <View className="bg-success-bg border border-success-border rounded-xl p-4 mt-4" accessibilityLiveRegion="polite">
             <View className="flex-row items-center justify-center gap-1.5">
-              <MaterialIcons name="check-circle" size={16} color={colors.successText} />
+              <MaterialIcons name="check-circle" size={16} color={cores.sucessoTexto} />
               <Text className="text-success-text text-sm font-medium">Formulário enviado — obrigado!</Text>
             </View>
           </View>

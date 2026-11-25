@@ -1,8 +1,10 @@
 import React, { ReactNode } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Modal, ScrollView } from 'react-native';
+import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 import { MaterialIcons } from '@expo/vector-icons';
 import { DateField } from './DateField';
-import { colors } from '../constants/colors';
+import { useCores, useMovimentoReduzido } from '../acessibilidade/useTema';
+import { CamadaTema } from '../acessibilidade/CamadaTema';
 
 type IconName = keyof typeof MaterialIcons.glyphMap;
 
@@ -25,35 +27,41 @@ export function FiltrosModal({
   title = 'Filtros e Ordenação',
   children,
 }: Props) {
+  const cores = useCores();
+  const semMovimento = useMovimentoReduzido();
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/40">
-        <View className="bg-white rounded-t-3xl px-5 pt-5 pb-8" style={{ maxHeight: '90%' }}>
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-primary font-bold text-base">{title}</Text>
-            <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Fechar">
-              <MaterialIcons name="close" size={22} color={colors.gray400} />
-            </TouchableOpacity>
-          </View>
+    <Modal visible={visible} transparent animationType={semMovimento ? 'none' : 'slide'} onRequestClose={onClose}>
+      <CamadaTema>
+        <View className="flex-1 justify-end bg-black/40">
+          <View className="bg-white rounded-t-3xl px-5 pt-5 pb-8" style={{ maxHeight: '90%' }}>
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-primary font-bold text-base" accessibilityRole="header">
+                {title}
+              </Text>
+              <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Fechar">
+                <MaterialIcons name="close" size={22} color={cores.texto5} />
+              </TouchableOpacity>
+            </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>{children}</ScrollView>
+            <ScrollView showsVerticalScrollIndicator={false}>{children}</ScrollView>
 
-          <View className="flex-row gap-3 mt-4">
-            <TouchableOpacity
-              onPress={onClear}
-              className="flex-1 h-12 border border-border rounded-2xl items-center justify-center"
-            >
-              <Text className="text-gray-600 font-medium">Limpar tudo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={onApply}
-              className="flex-1 h-12 bg-primary rounded-2xl items-center justify-center"
-            >
-              <Text className="text-white font-semibold">Aplicar filtros</Text>
-            </TouchableOpacity>
+            <View className="flex-row gap-3 mt-4">
+              <TouchableOpacity
+                onPress={onClear}
+                className="flex-1 h-12 border border-border rounded-2xl items-center justify-center"
+              >
+                <Text className="text-gray-600 font-medium">Limpar tudo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onApply}
+                className="flex-1 h-12 bg-primary rounded-2xl items-center justify-center"
+              >
+                <Text className="text-white font-semibold">Aplicar filtros</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
+      </CamadaTema>
     </Modal>
   );
 }
@@ -68,11 +76,14 @@ export function FilterSection({
   title: string;
   children: ReactNode;
 }) {
+  const cores = useCores();
   return (
     <View className="mb-4">
       <View className="flex-row items-center gap-1.5 mb-2">
-        <MaterialIcons name={icon} size={14} color={colors.gray500} />
-        <Text className="text-xs font-semibold text-gray-500 uppercase">{title}</Text>
+        <MaterialIcons name={icon} size={14} color={cores.texto4} />
+        <Text className="text-xs font-semibold text-gray-500 uppercase" accessibilityRole="header">
+          {title}
+        </Text>
       </View>
       {children}
     </View>

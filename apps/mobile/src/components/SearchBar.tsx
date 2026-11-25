@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, TextInput, TouchableOpacity } from 'react-native';
+import { View, TextInput } from 'react-native';
+import { TouchableOpacity } from '../acessibilidade/Leitura';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors } from '../constants/colors';
+import { useCores } from '../acessibilidade/useTema';
+import { lerSeAtivo } from '../acessibilidade/fala';
 
 interface Props {
   value: string;
@@ -21,21 +23,24 @@ export function SearchBar({
   onFilterPress,
   filterActive = false,
 }: Props) {
+  const cores = useCores();
   return (
     <View className="flex-row items-center gap-2">
-      <View className="flex-1 flex-row items-center bg-white/15 rounded-xl px-3 h-10">
+      <View className="flex-1 flex-row items-center bg-sobre-primaria/15 rounded-xl px-3 h-10">
         <MaterialIcons
           name="search"
           size={18}
-          color="rgba(255,255,255,0.6)"
+          color={cores.sobrePrimaria}
           style={{ marginRight: 8 }}
         />
         <TextInput
           className="flex-1 text-white text-sm"
           placeholder={placeholder}
-          placeholderTextColor="rgba(255,255,255,0.5)"
+          placeholderTextColor={cores.sobrePrimaria + '99'}
           value={value}
           onChangeText={onChangeText}
+          accessibilityLabel={placeholder}
+          onFocus={() => lerSeAtivo(value ? `${placeholder} ${value}` : placeholder)}
           autoCorrect={false}
         />
       </View>
@@ -43,12 +48,12 @@ export function SearchBar({
         <TouchableOpacity
           onPress={onFilterPress}
           className={`w-10 h-10 rounded-xl items-center justify-center ${
-            filterActive ? 'bg-green-500' : 'bg-white/15'
+            filterActive ? 'bg-green-500' : 'bg-sobre-primaria/15'
           }`}
           accessibilityRole="button"
           accessibilityLabel={filterActive ? 'Filtros (ativos)' : 'Filtros'}
         >
-          <MaterialIcons name="tune" size={20} color={colors.white} />
+          <MaterialIcons name="tune" size={20} color={cores.sobrePrimaria} />
         </TouchableOpacity>
       )}
     </View>

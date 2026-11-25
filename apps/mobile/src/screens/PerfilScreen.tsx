@@ -1,14 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, ScrollView, ActivityIndicator, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -26,7 +18,7 @@ import { useScrollToError } from '../hooks/useScrollToError';
 import { usuariosService, AtualizarPerfilPayload } from '../services/usuarios';
 import { apoioService } from '../services/apoio';
 import { SEXO_OPCOES, Sexo } from '../constants/dominio';
-import { colors } from '../constants/colors';
+import { useCores } from '../acessibilidade/useTema';
 import { formatTelefone, cleanMask } from '../utils/masks';
 import { isEmailValido } from '../utils/validation';
 import { maskCpf } from '../utils/format';
@@ -44,6 +36,7 @@ function iniciais(nome?: string) {
 }
 
 export function PerfilScreen() {
+  const cores = useCores();
   const navigation = useNavigation();
   const { updateUsuario } = useAuth();
   const { foto, setFoto } = useProfilePhoto();
@@ -186,7 +179,7 @@ export function PerfilScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={cores.destaque} />
       </View>
     );
   }
@@ -203,22 +196,28 @@ export function PerfilScreen() {
       >
         {/* Avatar */}
         <View className="items-center mb-6">
-          <TouchableOpacity onPress={escolherFoto} activeOpacity={0.8} className="relative">
+          <TouchableOpacity
+            onPress={escolherFoto}
+            activeOpacity={0.8}
+            className="relative"
+            accessibilityRole="button"
+            accessibilityLabel={foto ? 'Trocar foto de perfil' : 'Escolher foto de perfil'}
+          >
             <View className="w-24 h-24 rounded-full bg-primary/10 items-center justify-center overflow-hidden">
               {foto ? (
-                <Image source={{ uri: foto }} style={{ width: 96, height: 96 }} resizeMode="cover" />
+                <Image source={{ uri: foto }} style={{ width: 96, height: 96 }} resizeMode="cover" accessibilityLabel="Sua foto de perfil" />
               ) : (
                 <Text className="text-primary text-2xl font-bold">{iniciais(nome)}</Text>
               )}
             </View>
-            <View className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary items-center justify-center border-2 border-white">
-              <MaterialIcons name="photo-camera" size={16} color="white" />
+            <View className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary items-center justify-center border-2 border-superficie">
+              <MaterialIcons name="photo-camera" size={16} color={cores.sobrePrimaria} />
             </View>
           </TouchableOpacity>
           <Text className="text-primary font-bold text-base mt-3">{nome}</Text>
           <Text className="text-muted text-xs">Paciente</Text>
           {foto && (
-            <TouchableOpacity onPress={removerFoto} className="mt-2">
+            <TouchableOpacity onPress={removerFoto} className="mt-2" accessibilityRole="button" hitSlop={8}>
               <Text className="text-red-500 text-xs font-medium">Remover foto</Text>
             </TouchableOpacity>
           )}
@@ -237,7 +236,7 @@ export function PerfilScreen() {
             <Text className="text-sm font-medium text-gray-700 mb-1">CPF</Text>
             <View className="flex-row items-center bg-gray-100 border border-border rounded-xl px-4 h-12">
               <Text className="flex-1 text-sm text-gray-500">{maskCpf(cpf)}</Text>
-              <MaterialIcons name="lock" size={16} color={colors.gray400} />
+              <MaterialIcons name="lock" size={16} color={cores.texto5} />
             </View>
             <Text className="text-muted text-xs mt-1">O CPF não pode ser alterado.</Text>
           </View>

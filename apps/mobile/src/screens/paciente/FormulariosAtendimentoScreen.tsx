@@ -1,11 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import { View, ScrollView, ActivityIndicator } from 'react-native';
+import { Text, TouchableOpacity } from '../../acessibilidade/Leitura';
 import { useNavigation, useRoute, useFocusEffect, RouteProp } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { PacienteNavProp, PacienteStackParamList } from '../../navigation/types';
@@ -15,7 +10,7 @@ import { atendimentosService, Atendimento, AtendimentoFormulario } from '../../s
 import { formulariosService } from '../../services/formularios';
 import { useFeedback } from '../../context/FeedbackContext';
 import { SituacaoFormulario } from '../../constants/dominio';
-import { colors } from '../../constants/colors';
+import { useCores } from '../../acessibilidade/useTema';
 import { formatProtocolo } from '../../utils/format';
 import { mensagemErroApi } from '../../utils/errors';
 
@@ -31,6 +26,7 @@ function iconeFormulario(nome?: string): IconName {
 }
 
 export function FormulariosAtendimentoScreen() {
+  const cores = useCores();
   const navigation = useNavigation<PacienteNavProp>();
   const { toast } = useFeedback();
   const { idAtendimento, descricao } = useRoute<RouteT>().params;
@@ -67,7 +63,7 @@ export function FormulariosAtendimentoScreen() {
   if (loading || !atendimento) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={cores.destaque} />
       </View>
     );
   }
@@ -119,7 +115,7 @@ export function FormulariosAtendimentoScreen() {
             <View key={af.id_atendimento_formulario} className="bg-white border border-border rounded-2xl p-4 mb-3" style={{ elevation: 1 }}>
               <View className="flex-row items-center mb-3">
                 <View className="w-12 h-12 rounded-xl bg-primary/10 items-center justify-center mr-3">
-                  <MaterialIcons name={iconName} size={26} color={colors.primary} />
+                  <MaterialIcons name={iconName} size={26} color={cores.destaque} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-sm font-semibold text-gray-800">{af.formulario.nome}</Text>
@@ -139,13 +135,17 @@ export function FormulariosAtendimentoScreen() {
                       })
                     }
                     className="border border-border rounded-xl px-4 py-2"
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ver respostas: ${af.formulario.nome ?? 'Formulário'}`}
                   >
                     <Text className="text-gray-600 text-sm">Ver</Text>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity
                     onPress={() => iniciarFormulario(af)}
-                    className="bg-green-500 rounded-xl px-4 py-2"
+                    className="bg-green-500 border border-green-500 rounded-xl px-4 py-2"
+                    accessibilityRole="button"
+                    accessibilityLabel={`Iniciar: ${af.formulario.nome ?? 'Formulário'}`}
                   >
                     <Text className="text-white text-sm font-semibold">Iniciar</Text>
                   </TouchableOpacity>

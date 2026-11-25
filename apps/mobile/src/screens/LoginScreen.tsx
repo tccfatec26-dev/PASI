@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Image,
-  ScrollView,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BotaoAcessibilidade } from '../acessibilidade/MenuAcessibilidade';
 import { NavigationProp } from '../navigation/types';
 import { InputField } from '../components/InputField';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -18,6 +13,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { mensagemErroApi } from '../utils/errors';
 
 export function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const { login: authLogin } = useAuth();
   const { toast } = useFeedback();
@@ -65,7 +61,11 @@ export function LoginScreen() {
     >
       <ScrollView className="flex-1 bg-white" keyboardShouldPersistTaps="handled">
         {/* Header */}
-        <View className="bg-primary items-center pt-16 pb-10 px-6 rounded-b-3xl">
+        <View className="bg-cabecalho items-center pt-16 pb-10 px-6 rounded-b-3xl">
+          {/* RF04: o menu de acessibilidade também na tela de entrada */}
+          <View className="absolute right-5" style={{ top: Math.max(insets.top, 16) }}>
+            <BotaoAcessibilidade />
+          </View>
           <Image
             source={require('../../assets/logo.png')}
             style={{ width: 200, height: 72 }}
@@ -76,7 +76,9 @@ export function LoginScreen() {
 
         {/* Body */}
         <View className="px-6 pt-8 pb-10">
-          <Text className="text-2xl font-bold text-primary mb-1">Bem-vindo(a)</Text>
+          <Text className="text-2xl font-bold text-primary mb-1" accessibilityRole="header">
+            Bem-vindo(a)
+          </Text>
           <Text className="text-muted text-sm mb-6">Acesse sua conta para continuar</Text>
 
           <InputField
@@ -102,6 +104,8 @@ export function LoginScreen() {
           <TouchableOpacity
             className="items-end mb-6"
             onPress={() => navigation.navigate('EsqueceuSenha')}
+            accessibilityRole="link"
+            hitSlop={8}
           >
             <Text className="text-primary text-sm">Esqueci minha senha</Text>
           </TouchableOpacity>

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Linking } from 'react-native';
+import { View, Linking } from 'react-native';
+import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 import { MaterialIcons } from '@expo/vector-icons';
 import { InputField } from './InputField';
 import { buscarCep } from '../services/apoio';
-import { colors } from '../constants/colors';
+import { useCores } from '../acessibilidade/useTema';
 
 const CORREIOS_URL = 'https://buscacepinter.correios.com.br/app/endereco/index.php';
 
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function EnderecoFields({ values, onChange, errors = {} }: Props) {
+  const cores = useCores();
   const [cepLoading, setCepLoading] = useState(false);
   // Quando o serviço de CEP está indisponível, liberamos os campos para
   // preenchimento manual.
@@ -83,14 +85,20 @@ export function EnderecoFields({ values, onChange, errors = {} }: Props) {
       <TouchableOpacity
         onPress={() => Linking.openURL(CORREIOS_URL)}
         className="-mt-3 mb-3 self-start flex-row items-center"
+        accessibilityRole="link"
+        accessibilityLabel="Não sei meu CEP: abre a busca de CEP dos Correios"
       >
-        <MaterialIcons name="help-outline" size={14} color={colors.primary} style={{ marginRight: 4 }} />
+        <MaterialIcons name="help-outline" size={14} color={cores.destaque} style={{ marginRight: 4 }} />
         <Text className="text-primary text-xs underline">Não sei meu CEP</Text>
       </TouchableOpacity>
 
-      {cepLoading && <Text className="text-muted text-xs -mt-1 mb-3">Buscando endereço...</Text>}
+      {cepLoading && (
+        <Text className="text-muted text-xs -mt-1 mb-3" accessibilityLiveRegion="polite">
+          Buscando endereço...
+        </Text>
+      )}
       {apiIndisponivel && (
-        <Text className="text-orange-600 text-xs -mt-1 mb-3">
+        <Text className="text-orange-600 text-xs -mt-1 mb-3" accessibilityRole="alert" accessibilityLiveRegion="polite">
           Serviço de CEP indisponível. Preencha o endereço manualmente.
         </Text>
       )}

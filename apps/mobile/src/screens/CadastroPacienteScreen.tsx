@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { Text } from '../acessibilidade/Leitura';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NavigationProp } from '../navigation/types';
@@ -21,13 +22,14 @@ import { formatCPF, formatTelefone, cleanMask } from '../utils/masks';
 import { isCpfValido, isEmailValido, isSenhaForte, SENHA_MENSAGEM } from '../utils/validation';
 import { maskDataBr, brParaIso } from '../utils/date';
 import { mensagemErroApi } from '../utils/errors';
-import { colors } from '../constants/colors';
+import { useCores } from '../acessibilidade/useTema';
 
 const STEPS = ['Pessoal', 'Endereço', 'Acesso'];
 
 type Genero = { id_genero: number; nome: string };
 
 export function CadastroPacienteScreen() {
+  const cores = useCores();
   const navigation = useNavigation<NavigationProp>();
   const { toast } = useFeedback();
   const { scrollRef, registrarBase, registrar, scrollPara } = useScrollToError();
@@ -144,7 +146,6 @@ export function CadastroPacienteScreen() {
     >
       <ScrollView ref={scrollRef} className="flex-1 bg-white" keyboardShouldPersistTaps="handled">
         <ScreenHeader
-          variant="large"
           title="Cadastro Paciente"
           subtitle="Preencha seus dados pessoais"
           onBack={() => navigation.goBack()}
@@ -246,7 +247,7 @@ export function CadastroPacienteScreen() {
           {step === 3 && (
             <>
               <View className="bg-success-bg border border-success-border rounded-xl p-4 mb-6 flex-row items-start">
-                <MaterialIcons name="info-outline" size={16} color={colors.successText} style={{ marginRight: 8, marginTop: 1 }} />
+                <MaterialIcons name="info-outline" size={16} color={cores.sucessoTexto} style={{ marginRight: 8, marginTop: 1 }} />
                 <Text className="text-success-text text-xs leading-relaxed flex-1">
                   Você receberá nível de acesso <Text className="font-bold">Mínimo</Text> —
                   poderá visualizar e responder seus próprios formulários de atendimento.

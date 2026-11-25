@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View } from 'react-native';
+import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 
 export interface RadioOption<T> {
   value: T;
@@ -22,6 +23,7 @@ export function RadioList<T extends string | number>({ options, value, onChange 
           <TouchableOpacity
             key={String(op.value)}
             onPress={() => onChange(op.value)}
+            textoFala={`${op.label}: selecionado`}
             className={`flex-row items-center px-4 py-3 rounded-xl mb-2 border ${
               sel ? 'bg-primary/5 border-primary' : 'bg-white border-border'
             }`}

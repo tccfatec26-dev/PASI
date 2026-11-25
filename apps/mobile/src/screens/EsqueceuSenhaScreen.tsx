@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { Text } from '../acessibilidade/Leitura';
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '../navigation/types';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -9,9 +10,10 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { authService } from '../services/auth';
 import { useFeedback } from '../context/FeedbackContext';
 import { isEmailValido } from '../utils/validation';
-import { colors } from '../constants/colors';
+import { useCores } from '../acessibilidade/useTema';
 
 export function EsqueceuSenhaScreen() {
+  const cores = useCores();
   const navigation = useNavigation<NavigationProp>();
   const { toast } = useFeedback();
   const [email, setEmail] = useState('');
@@ -48,6 +50,7 @@ export function EsqueceuSenhaScreen() {
               source={require('../../assets/logo.png')}
               style={{ width: 180, height: 65 }}
               resizeMode="contain"
+              accessibilityLabel="PASI"
             />
           </View>
         </ScreenHeader>
@@ -68,7 +71,7 @@ export function EsqueceuSenhaScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             error={error}
-            leftIcon={<MaterialIcons name="email" size={18} color={colors.placeholder} />}
+            leftIcon={<MaterialIcons name="email" size={18} color={cores.placeholder} />}
           />
 
           <PrimaryButton

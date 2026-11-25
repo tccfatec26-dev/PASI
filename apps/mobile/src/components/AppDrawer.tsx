@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
-  Text,
-  TouchableOpacity,
   TouchableWithoutFeedback,
   Animated,
   Dimensions,
@@ -10,13 +8,14 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDrawer } from '../context/DrawerContext';
 import { useAuth } from '../context/AuthContext';
 import { useProfilePhoto } from '../context/ProfilePhotoContext';
 import { navigate } from '../navigation/navigationRef';
-import { colors } from '../constants/colors';
+import { useCores, useMovimentoReduzido } from '../acessibilidade/useTema';
 
 type IconName = keyof typeof MaterialIcons.glyphMap;
 
@@ -49,6 +48,11 @@ export function AppDrawer() {
   const { usuario, logout } = useAuth();
   const { foto } = useProfilePhoto();
 
+  const cores = useCores();
+  const semMovimento = useMovimentoReduzido();
+  // "Reduzir movimento": abre e fecha sem deslizar
+  const dAbrir = semMovimento ? 0 : 260;
+  const dFechar = semMovimento ? 0 : 220;
   const translateX = useRef(new Animated.Value(-PANEL_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(false);
@@ -57,13 +61,13 @@ export function AppDrawer() {
     if (isOpen) {
       setMounted(true);
       Animated.parallel([
-        Animated.timing(translateX, { toValue: 0, duration: 260, useNativeDriver: useNative }),
-        Animated.timing(overlayOpacity, { toValue: 1, duration: 260, useNativeDriver: useNative }),
+        Animated.timing(translateX, { toValue: 0, duration: dAbrir, useNativeDriver: useNative }),
+        Animated.timing(overlayOpacity, { toValue: 1, duration: dAbrir, useNativeDriver: useNative }),
       ]).start();
     } else if (mounted) {
       Animated.parallel([
-        Animated.timing(translateX, { toValue: -PANEL_WIDTH, duration: 220, useNativeDriver: useNative }),
-        Animated.timing(overlayOpacity, { toValue: 0, duration: 220, useNativeDriver: useNative }),
+        Animated.timing(translateX, { toValue: -PANEL_WIDTH, duration: dFechar, useNativeDriver: useNative }),
+        Animated.timing(overlayOpacity, { toValue: 0, duration: dFechar, useNativeDriver: useNative }),
       ]).start(({ finished }) => {
         if (finished) setMounted(false);
       });
@@ -75,18 +79,18 @@ export function AppDrawer() {
   const irPara = (route: string) => {
     closeDrawer();
     // pequena espera para a animação de fechar não competir com a transição de tela
-    setTimeout(() => navigate(route), 180);
+    setTimeout(() => navigate(route), semMovimento ? 0 : 180);
   };
 
   const handleLogout = () => {
     closeDrawer();
-    setTimeout(() => logout(), 180);
+    setTimeout(() => logout(), semMovimento ? 0 : 180);
   };
 
   return (
     <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 }}>
       {/* Backdrop */}
-      <TouchableWithoutFeedback onPress={closeDrawer}>
+      <TouchableWithoutFeedback onPress={closeDrawer} accessibilityLabel="Fechar menu">
         <Animated.View
           style={{
             position: 'absolute',
@@ -105,18 +109,24 @@ export function AppDrawer() {
         style={{
           width: PANEL_WIDTH,
           height: '100%',
-          backgroundColor: colors.white,
+          backgroundColor: cores.superficie,
           transform: [{ translateX }],
         }}
+        accessibilityViewIsModal
       >
         {/* Cabeçalho do perfil */}
-        <View className="bg-primary px-5" style={{ paddingTop: Math.max(insets.top, 16), paddingBottom: 24 }}>
+        <View className="bg-cabecalho px-5" style={{ paddingTop: Math.max(insets.top, 16), paddingBottom: 24 }}>
           <View className="flex-row items-center justify-between mb-2">
             <Text className="text-white/80 text-xs font-semibold uppercase tracking-wider">
               Paciente
             </Text>
-            <TouchableOpacity onPress={closeDrawer} className="w-8 h-8 items-center justify-center">
-              <MaterialIcons name="close" size={22} color="white" />
+            <TouchableOpacity
+              onPress={closeDrawer}
+              className="w-8 h-8 items-center justify-center"
+              accessibilityRole="button"
+              accessibilityLabel="Fechar menu"
+            >
+              <MaterialIcons name="close" size={22} color={cores.sobrePrimaria} />
             </TouchableOpacity>
           </View>
 
@@ -124,8 +134,10 @@ export function AppDrawer() {
             onPress={() => irPara('Perfil')}
             className="flex-row items-center"
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Meu perfil: ${usuario?.nome ?? ''}`}
           >
-            <View className="w-14 h-14 rounded-full bg-white/20 items-center justify-center overflow-hidden mr-3">
+            <View className="w-14 h-14 rounded-full bg-sobre-primaria/20 items-center justify-center overflow-hidden mr-3">
               {foto ? (
                 <Image source={{ uri: foto }} style={{ width: 56, height: 56 }} resizeMode="cover" />
               ) : (
@@ -151,8 +163,9 @@ export function AppDrawer() {
               onPress={() => irPara(item.route)}
               className="flex-row items-center px-5 py-4"
               activeOpacity={0.6}
+              accessibilityRole="button"
             >
-              <MaterialIcons name={item.icon} size={22} color={colors.primary} style={{ marginRight: 16 }} />
+              <MaterialIcons name={item.icon} size={22} color={cores.destaque} style={{ marginRight: 16 }} />
               <Text className="text-gray-800 text-sm font-medium">{item.label}</Text>
             </TouchableOpacity>
           ))}
@@ -168,9 +181,10 @@ export function AppDrawer() {
             onPress={handleLogout}
             className="flex-row items-center"
             activeOpacity={0.6}
+            accessibilityRole="button"
           >
-            <MaterialIcons name="logout" size={22} color={colors.danger} style={{ marginRight: 16 }} />
-            <Text className="text-red-600 text-sm font-medium">Sair</Text>
+            <MaterialIcons name="logout" size={22} color={cores.erro} style={{ marginRight: 16 }} />
+            <Text className="text-red-500 text-sm font-medium">Sair</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
