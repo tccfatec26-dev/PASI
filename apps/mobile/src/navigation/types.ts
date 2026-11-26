@@ -17,6 +17,7 @@ export type PacienteStackParamList = {
   };
   Perfil: undefined;
   Notificacoes: undefined;
+  Assistente: undefined;
 };
 
 export type AuthNavProp = NativeStackNavigationProp<AuthStackParamList>;
