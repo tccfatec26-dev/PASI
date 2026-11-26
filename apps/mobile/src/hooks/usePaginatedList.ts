@@ -18,7 +18,7 @@ export interface ConsultaPaginada<F> {
 interface Options<T, F> {
   /** Busca uma página na API a partir da página, do texto de busca e dos filtros. */
   fetcher: (consulta: ConsultaPaginada<F>) => Promise<PaginaResultado<T>>;
-  /** Filtros iniciais/"Limpar tudo". Use uma constante de módulo (referência estável). */
+  /** Filtros iniciais/"Limpar". Use uma constante de módulo (referência estável). */
   filtrosPadrao: F;
   /** Toast exibido quando a busca falha. */
   mensagemErro: string;

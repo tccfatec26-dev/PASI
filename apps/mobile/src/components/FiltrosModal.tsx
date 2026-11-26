@@ -2,11 +2,10 @@ import React, { ReactNode } from 'react';
 import { View, Modal, ScrollView } from 'react-native';
 import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DateField } from './DateField';
 import { useCores, useMovimentoReduzido } from '../acessibilidade/useTema';
 import { CamadaTema } from '../acessibilidade/CamadaTema';
-
-type IconName = keyof typeof MaterialIcons.glyphMap;
 
 interface Props {
   visible: boolean;
@@ -29,11 +28,14 @@ export function FiltrosModal({
 }: Props) {
   const cores = useCores();
   const semMovimento = useMovimentoReduzido();
+  // a janela ocupa a tela toda (edge-to-edge): os botões sobem acima da
+  // barra de navegação do Android, como no menu de acessibilidade
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType={semMovimento ? 'none' : 'slide'} onRequestClose={onClose}>
       <CamadaTema>
         <View className="flex-1 justify-end bg-black/40">
-          <View className="bg-white rounded-t-3xl px-5 pt-5 pb-8" style={{ maxHeight: '90%' }}>
+          <View className="bg-white rounded-t-3xl px-5 pt-5" style={{ maxHeight: '90%', paddingBottom: insets.bottom + 16 }}>
             <View className="flex-row items-center justify-between mb-4">
               <Text className="text-primary font-bold text-base" accessibilityRole="header">
                 {title}
@@ -49,14 +51,18 @@ export function FiltrosModal({
               <TouchableOpacity
                 onPress={onClear}
                 className="flex-1 h-12 border border-border rounded-2xl items-center justify-center"
+                accessibilityRole="button"
+                accessibilityLabel="Limpar os filtros"
               >
-                <Text className="text-gray-600 font-medium">Limpar tudo</Text>
+                <Text className="text-gray-600 font-medium">Limpar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={onApply}
                 className="flex-1 h-12 bg-primary rounded-2xl items-center justify-center"
+                accessibilityRole="button"
+                accessibilityLabel="Aplicar os filtros"
               >
-                <Text className="text-white font-semibold">Aplicar filtros</Text>
+                <Text className="text-white font-semibold">Aplicar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -66,25 +72,13 @@ export function FiltrosModal({
   );
 }
 
-/** Bloco de filtro com ícone e título em caixa alta. */
-export function FilterSection({
-  icon,
-  title,
-  children,
-}: {
-  icon: IconName;
-  title: string;
-  children: ReactNode;
-}) {
-  const cores = useCores();
+/** Bloco de filtro com título em caixa alta. */
+export function FilterSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View className="mb-4">
-      <View className="flex-row items-center gap-1.5 mb-2">
-        <MaterialIcons name={icon} size={14} color={cores.texto4} />
-        <Text className="text-xs font-semibold text-gray-500 uppercase" accessibilityRole="header">
-          {title}
-        </Text>
-      </View>
+      <Text className="text-xs font-semibold text-gray-500 uppercase mb-2" accessibilityRole="header">
+        {title}
+      </Text>
       {children}
     </View>
   );

@@ -194,7 +194,7 @@ export function MeusAtendimentosScreen() {
         onClear={lista.limparFiltros}
         onApply={lista.aplicarFiltros}
       >
-        <FilterSection icon="bar-chart" title="Situação do atendimento">
+        <FilterSection title="Situação do atendimento">
           <ChipGroup
             options={SITUACOES_ATENDIMENTO_OPCOES}
             selected={lista.filtrosDraft.situacoes}
@@ -203,7 +203,7 @@ export function MeusAtendimentosScreen() {
             }
           />
         </FilterSection>
-        <FilterSection icon="calendar-today" title="Data de cadastro">
+        <FilterSection title="Data de cadastro">
           <FilterDateRange
             inicio={lista.filtrosDraft.dataInicio}
             fim={lista.filtrosDraft.dataFim}
@@ -211,7 +211,7 @@ export function MeusAtendimentosScreen() {
             onChangeFim={(dataFim) => lista.editarFiltros({ dataFim })}
           />
         </FilterSection>
-        <FilterSection icon="swap-vert" title="Ordenar por">
+        <FilterSection title="Ordenar por">
           <RadioList
             options={OPCOES_ORDENACAO}
             value={lista.filtrosDraft.ordenarPor}
