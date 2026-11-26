@@ -37,12 +37,15 @@ function destino(n: Notificacao) {
 export function Notificacoes() {
   const [filtro, setFiltro] = useState<'todas' | 'nao_lidas'>('todas');
   const [pagina, setPagina] = useState(1);
+  /** "Marcar todas como lidas" em andamento */
   const [ocupado, setOcupado] = useState(false);
+  /** notificações sendo marcadas como lidas (ou abertas) agora */
+  const [lendo, setLendo] = useState<ReadonlySet<number>>(new Set());
   const { naoLidas, versao, marcarLida, marcarTodas } = useNotificacoes();
   const avisar = useAvisos();
   const navegar = useNavigate();
 
-  const { dados, carregando, erro, recarregar } = useCarregar(
+  const { dados, setDados, carregando, erro, recarregar } = useCarregar(
     () => notifApi.listar({ page: pagina, limit: POR_PAGINA, nao_lidas: filtro === 'nao_lidas' || undefined }),
     [pagina, filtro],
   );
@@ -51,28 +54,56 @@ export function Notificacoes() {
     if (versao > 0) void recarregar();
   }, [versao, recarregar]);
 
+  const comLendo = (id: number, sim: boolean) =>
+    setLendo((atual) => {
+      const novo = new Set(atual);
+      if (sim) novo.add(id);
+      else novo.delete(id);
+      return novo;
+    });
+
+  /** a lista mostra a mudança na hora, sem esperar ela ser recarregada */
+  const marcarNaLista = (ids: number[] | 'todas') =>
+    setDados((d) =>
+      d ? { ...d, data: d.data.map((x) => (ids === 'todas' || ids.includes(x.id_notificacao) ? { ...x, lida: true } : x)) } : d,
+    );
+
   async function abrir(n: Notificacao) {
+    if (lendo.has(n.id_notificacao)) return;
     const para = destino(n);
-    try {
-      if (!n.lida) await marcarLida(n.id_notificacao);
-    } catch {
-      /* não conseguiu marcar: abre assim mesmo */
+    if (!n.lida) {
+      comLendo(n.id_notificacao, true);
+      try {
+        await marcarLida(n.id_notificacao);
+      } catch {
+        /* não conseguiu marcar: abre assim mesmo */
+      } finally {
+        comLendo(n.id_notificacao, false);
+      }
     }
     if (para) navegar(para);
   }
 
   async function lerUma(n: Notificacao) {
+    if (lendo.has(n.id_notificacao)) return;
+    comLendo(n.id_notificacao, true);
     try {
       await marcarLida(n.id_notificacao);
+      marcarNaLista([n.id_notificacao]);
     } catch (e) {
       avisar({ tipo: 'error', titulo: 'Não foi possível marcar como lida', texto: mensagemErro(e) });
+    } finally {
+      comLendo(n.id_notificacao, false);
     }
   }
 
   async function lerTodas() {
+    // ocupado o botão continua clicável (aria-disabled, para o leitor de tela anunciar "Marcando…")
+    if (ocupado) return;
     setOcupado(true);
     try {
       await marcarTodas();
+      marcarNaLista('todas');
       avisar({ titulo: 'Todas as notificações foram marcadas como lidas' });
     } catch (e) {
       avisar({ tipo: 'error', titulo: 'Não foi possível marcar como lidas', texto: mensagemErro(e) });
@@ -82,6 +113,8 @@ export function Notificacoes() {
   }
 
   const lista = dados?.data ?? [];
+  /** trocou o filtro, a página ou chegou notificação: a lista atual fica à mostra, esmaecida, até a nova chegar */
+  const atualizando = carregando && !!dados;
   return (
     <>
       <PageHead
@@ -89,9 +122,16 @@ export function Notificacoes() {
         titulo="Notificações"
         dica="Você é avisado quando um paciente responde um formulário de um atendimento criado por você."
         acoes={
-          <button type="button" className="ps-btn secondary" onClick={lerTodas} disabled={ocupado || naoLidas === 0}>
-            <Ic d={D.check} />
-            Marcar todas como lidas
+          <button
+            type="button"
+            className="ps-btn secondary"
+            onClick={lerTodas}
+            disabled={naoLidas === 0 && !ocupado}
+            aria-busy={ocupado || undefined}
+            aria-disabled={ocupado || undefined}
+          >
+            {ocupado ? <span className="giro" aria-hidden="true" /> : <Ic d={D.check} />}
+            {ocupado ? 'Marcando…' : 'Marcar todas como lidas'}
           </button>
         }
         acoesAlinhadas
@@ -113,6 +153,10 @@ export function Notificacoes() {
               }}
             />
           </header>
+          {/* recarregando (filtro, página, notificação nova): barra correndo no topo da lista */}
+          <div className={'busca-barra' + (atualizando ? ' is-on' : '')} role="status" aria-live="polite">
+            <span className="ps-sr">{atualizando ? 'Carregando as notificações…' : ''}</span>
+          </div>
           {erro ? (
             <div className="pb">
               <Alerta tipo="error" titulo="Não foi possível carregar as notificações">
@@ -131,13 +175,15 @@ export function Notificacoes() {
               <p>{filtro === 'nao_lidas' ? 'Nenhuma notificação sem ler.' : 'Nenhuma notificação por enquanto.'}</p>
             </div>
           ) : (
-            <ul className="notif-lista">
-              {lista.map((n) => (
-                <li key={n.id_notificacao} className={'ps-notif' + (n.lida ? '' : ' unread')}>
+            <ul className={'notif-lista' + (atualizando ? ' is-atualizando' : '')} aria-busy={atualizando || undefined}>
+              {lista.map((n) => {
+                const ocupada = lendo.has(n.id_notificacao);
+                return (
+                <li key={n.id_notificacao} className={'ps-notif' + (n.lida ? '' : ' unread') + (ocupada ? ' is-ocupada' : '')}>
                   <span className="ni" aria-hidden="true">
                     <Ic d={n.id_tipo_notificacao === TipoNotificacao.FORMULARIO_RESPONDIDO ? D.respostas : D.novoDoc} />
                   </span>
-                  <button type="button" className="notif-abrir" onClick={() => abrir(n)}>
+                  <button type="button" className="notif-abrir" onClick={() => abrir(n)} aria-busy={ocupada || undefined}>
                     <h5>
                       {!n.lida && <span className="ps-sr">Não lida: </span>}
                       {n.titulo}
@@ -148,12 +194,20 @@ export function Notificacoes() {
                     </time>
                   </button>
                   {!n.lida && (
-                    <button type="button" className="act tt notif-ler" onClick={() => lerUma(n)} aria-label="Marcar como lida" data-tip="Marcar como lida">
-                      <Ic d={D.check} />
+                    <button
+                      type="button"
+                      className="act tt notif-ler"
+                      onClick={() => lerUma(n)}
+                      aria-label={ocupada ? 'Marcando como lida…' : 'Marcar como lida'}
+                      data-tip={ocupada ? 'Marcando…' : 'Marcar como lida'}
+                      aria-busy={ocupada || undefined}
+                    >
+                      {ocupada ? <span className="giro" aria-hidden="true" /> : <Ic d={D.check} />}
                     </button>
                   )}
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
           {dados && dados.total > POR_PAGINA && (
