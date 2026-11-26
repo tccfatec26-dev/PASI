@@ -194,6 +194,27 @@
   color: var(--White);
 }
 
+/* tabela da IA mostrada como cartões, um por linha */
+.assistente-balao-bot p + .assistente-tabela,
+.assistente-balao-bot .assistente-tabela + p { margin-top: 8px; }
+
+.assistente-tabela { display: flex; flex-direction: column; gap: 8px; }
+
+.assistente-tabela-item {
+  padding: 10px 12px;
+  border: 1px solid var(--Border-card);
+  border-radius: 12px;
+  background: var(--Background);
+}
+
+.assistente-tabela-titulo { font-size: 13px; font-weight: 700; color: var(--Navy); }
+
+.assistente-tabela-item dl { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+.assistente-tabela-item dl > div { display: flex; gap: 6px; font-size: 12px; line-height: 1.45; }
+.assistente-tabela-item dt { flex: none; font-weight: 600; color: var(--Text-muted); }
+.assistente-tabela-item dt::after { content: ":"; }
+.assistente-tabela-item dd { color: var(--Navy); overflow-wrap: anywhere; }
+
 .assistente-fontes {
   margin-top: 8px;
   font-size: 11px;
