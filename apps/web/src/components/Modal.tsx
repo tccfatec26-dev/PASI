@@ -21,6 +21,7 @@ export function Modal({
   vidro = false,
   alta = false,
   focoInicial,
+  classe,
 }: {
   titulo: ReactNode;
   subtitulo?: ReactNode;
@@ -40,6 +41,8 @@ export function Modal({
   alta?: boolean;
   /** seletor do elemento que recebe o foco ao abrir (padrão: botão principal do rodapé) */
   focoInicial?: string;
+  /** classe extra na .ps-modal, para estilos de uma janela específica */
+  classe?: string;
 }) {
   const idT = useId();
   const idD = useId();
@@ -115,7 +118,7 @@ export function Modal({
     <div className={'ps-scrim' + (vidro ? ' vidro' : '')} style={{ position: 'fixed', inset: 0, borderRadius: 0, zIndex: 400 }}>
       <div
         ref={caixa}
-        className={'ps-modal' + (alta ? ' alta' : '')}
+        className={'ps-modal' + (alta ? ' alta' : '') + (classe ? ` ${classe}` : '')}
         role={alerta ? 'alertdialog' : 'dialog'}
         aria-modal="true"
         aria-labelledby={idT}

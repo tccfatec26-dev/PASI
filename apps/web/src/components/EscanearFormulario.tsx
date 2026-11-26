@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { NovaOpcao, NovaPergunta } from '../api/formularios';
 import { lerArquivos, LeituraCancelada, MAX_IMAGENS, TAMANHO_MAXIMO, TIPOS_ACEITOS, type Andamento, type Fonte } from '../lib/ocr/ler';
-import { contarPaginas, ehPdf, fecharPdfs, miniaturaDaPagina } from '../lib/ocr/pdf';
+import { contarPaginas, ehPdf, fecharPdfs, miniaturaDaPagina, paginaAmpliada } from '../lib/ocr/pdf';
 import { lerOpcoesComuns, montarFormulario, type Segmento } from '../lib/ocr/montar';
 import { nomeTipoPergunta, temOpcoes, TipoPergunta } from '../lib/perguntas';
 import { plural } from '../lib/format';
 import { Modal } from './Modal';
 import { Alerta, MensagemErro } from './Form';
 import { D, Ic, IcCheck, IcFechar, IcMais } from './icons';
+
+/** Largura (px) com que a página ampliada é desenhada: nítida em telas de alta densidade. */
+const largaAmpliada = () => Math.round(Math.min(1800, Math.max(900, 900 * (window.devicePixelRatio || 1))));
 
 export interface FormularioImportado {
   titulo?: string;
@@ -71,8 +74,9 @@ let proximoId = 1;
 
 /**
  * Prepara os arquivos escolhidos: foto = 1 página; PDF = todas as páginas
- * disponíveis para marcar, já com as primeiras marcadas até o limite de
- * `vagas` (o usuário troca na escolha de páginas). Diz o que ficou de fora.
+ * disponíveis para marcar. Um PDF que cabe inteiro nas `vagas` já vem com
+ * todas marcadas; um PDF maior que as vagas vem sem nenhuma marcada, e o
+ * usuário escolhe quais ler. Diz o que ficou de fora.
  */
 async function paraArquivos(lista: File[], vagas: number): Promise<{ novos: Arquivo[]; aviso: string | null }> {
   const avisos: string[] = [];
@@ -103,7 +107,8 @@ async function paraArquivos(lista: File[], vagas: number): Promise<{ novos: Arqu
         foraDoLimite++;
         continue;
       }
-      const n = Math.min(total, Math.max(vagas, 0));
+      // não marca "as primeiras N" de um PDF que não cabe inteiro: quem escolhe é o usuário
+      const n = total <= vagas ? total : 0;
       novos.push({ id: proximoId++, tipo: 'pdf', arquivo: f, nome: f.name, total, marcadas: Array.from({ length: n }, (_, i) => i + 1) });
       vagas -= n;
     } catch {
@@ -282,6 +287,8 @@ function EscolherPaginas({
   const id = `pdf-${pdf.id}`;
   const [faixa, setFaixa] = useState('');
   const [erroFaixa, setErroFaixa] = useState<string | null>(null);
+  /** página aberta em tamanho grande */
+  const [ampliada, setAmpliada] = useState<number | null>(null);
   const marcadas = new Set(pdf.marcadas);
   const cheio = pdf.marcadas.length >= limite;
 
@@ -337,7 +344,8 @@ function EscolherPaginas({
               placeholder="ex.: 1-3, 8"
               value={faixa}
               onChange={(e) => {
-                setFaixa(e.target.value);
+                // só números inteiros e os separadores da faixa ("1-3, 8"): letras e outros caracteres não entram
+                setFaixa(e.target.value.replace(/[–—]/g, '-').replace(/[^\d\s,-]/g, ''));
                 setErroFaixa(null);
               }}
               onKeyDown={(e) => {
@@ -383,11 +391,450 @@ function EscolherPaginas({
                   {n}
                 </span>
               </label>
+              {/* fora do <label>: clicar aqui amplia a página, sem marcar/desmarcar */}
+              <button
+                type="button"
+                className="ampliar"
+                aria-label={`Ampliar a página ${n}`}
+                data-tip="Ampliar a página"
+                onClick={() => setAmpliada(n)}
+              >
+                <Ic d={D.telaCheia} />
+              </button>
             </li>
           );
         })}
       </ul>
+
+      {ampliada !== null && (
+        <VerPagina
+          fonte={fontePdf(pdf.arquivo, ampliada, pdf.nome)}
+          pos={ampliada - 1}
+          total={pdf.total}
+          titulo={`Página ${ampliada} de ${pdf.total}`}
+          subtitulo={pdf.nome}
+          aoIr={(i) => setAmpliada(i + 1)}
+          aoFechar={() => setAmpliada(null)}
+          aoEnter={() => (marcadas.has(ampliada) || !cheio) && alternar(ampliada)}
+          rotuloEnter="marcar/desmarcar"
+          acao={
+            <BotaoMarcar
+              marcada={marcadas.has(ampliada)}
+              podeMarcar={marcadas.has(ampliada) || !cheio}
+              aoAlternar={() => alternar(ampliada)}
+            />
+          }
+        />
+      )}
     </section>
+  );
+}
+
+/** "Marcar esta página" na visualização ampliada de um PDF. */
+function BotaoMarcar({ marcada, podeMarcar, aoAlternar }: { marcada: boolean; podeMarcar: boolean; aoAlternar: () => void }) {
+  return (
+    <button
+      type="button"
+      className={'vp-btn marcar' + (marcada ? ' is-on' : '')}
+      aria-pressed={marcada}
+      onClick={aoAlternar}
+      disabled={!podeMarcar}
+      aria-keyshortcuts="Enter"
+      title={podeMarcar ? 'Tecla Enter' : `São até ${MAX_IMAGENS} páginas por vez: desmarque outra para marcar esta.`}
+    >
+      {marcada ? <IcCheck /> : <IcMais />}
+      {marcada ? 'Página marcada' : 'Marcar esta página'}
+    </button>
+  );
+}
+
+/** O que a visualização ampliada mostra: uma página de PDF ou uma foto. */
+interface FonteVista {
+  /** muda quando a página muda (recarrega a imagem e volta o zoom) */
+  chave: string;
+  alt: string;
+  /** imagem que aparece na hora (miniatura do PDF ou a própria foto) */
+  previa: () => Promise<string> | string;
+  /** só no PDF: desenha a página na largura pedida (blob: que a visualização solta) */
+  nitida?: (largura: number) => Promise<string>;
+}
+
+const fontePdf = (arquivo: File, n: number, nome: string): FonteVista => ({
+  chave: `${nome}:${n}:${arquivo.size}:${arquivo.lastModified}`,
+  alt: `Página ${n} do PDF ${nome}`,
+  previa: () => miniaturaDaPagina(arquivo, n),
+  nitida: (largura) => paginaAmpliada(arquivo, n, largura),
+});
+
+const ZOOM_MAX = 5;
+/** maior largura (px) com que a página é redesenhada ao aproximar */
+const LARGURA_MAX = 3200;
+const limitarZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(1, Math.round(z * 100) / 100));
+
+/**
+ * Página em tamanho grande, por cima da janela de escanear, para o usuário ver
+ * qual é. Mostra a prévia na hora e troca pela versão nítida quando fica
+ * pronta (e redesenha com mais resolução ao aproximar).
+ * Zoom: botões − / +, roda do mouse ou pinça, duplo clique; aproximada, a
+ * página é arrastada para os lados. Setas do teclado (ou os botões) passam de
+ * página; + / − / 0 controlam o zoom; Enter faz a ação da página (ex.: marcar).
+ * Esc fecha só esta visualização.
+ */
+function VerPagina({
+  fonte,
+  pos,
+  total,
+  titulo,
+  subtitulo,
+  acao,
+  aoEnter,
+  rotuloEnter,
+  aoIr,
+  aoFechar,
+}: {
+  fonte: FonteVista;
+  /** posição (0, 1...) entre as `total` páginas navegáveis */
+  pos: number;
+  total: number;
+  titulo: string;
+  subtitulo: string;
+  /** botão do meio, entre Anterior e Próxima (ex.: marcar a página) */
+  acao?: ReactNode;
+  /** tecla Enter (ex.: marcar/desmarcar a página) e o nome dela na linha de atalhos */
+  aoEnter?: () => void;
+  rotuloEnter?: string;
+  aoIr: (pos: number) => void;
+  aoFechar: () => void;
+}) {
+  const [previa, setPrevia] = useState<string | null>(null);
+  const [nitida, setNitida] = useState<string | null>(null);
+  const [falhou, setFalhou] = useState(false);
+  const [larguraPedida, setLarguraPedida] = useState(largaAmpliada);
+  const [zoom, setZoom] = useState(1);
+  /** tamanho da página ajustada à tela (zoom 1), medido na área disponível */
+  const [ajuste, setAjuste] = useState<{ w: number; h: number } | null>(null);
+
+  const folha = useRef<HTMLDivElement>(null);
+  const img = useRef<HTMLImageElement>(null);
+  const caixa = useRef<HTMLDivElement>(null);
+  const fonteRef = useRef(fonte);
+  fonteRef.current = fonte;
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  /** ponto da página que deve ficar parado na tela depois do zoom */
+  const ancora = useRef<{ x: number; y: number; fx: number; fy: number } | null>(null);
+  const nitidaUrl = useRef<string | null>(null);
+
+  const tem = { ant: pos > 0, prox: pos < total - 1 };
+  const temNitida = !!fonte.nitida;
+
+  function trocarNitida(url: string | null) {
+    if (nitidaUrl.current) URL.revokeObjectURL(nitidaUrl.current);
+    nitidaUrl.current = url;
+    setNitida(url);
+  }
+  useEffect(() => () => void (nitidaUrl.current && URL.revokeObjectURL(nitidaUrl.current)), []);
+
+  // página nova: prévia na hora, zoom de volta ao ajuste
+  useEffect(() => {
+    let vivo = true;
+    setPrevia(null);
+    trocarNitida(null);
+    setFalhou(false);
+    setZoom(1);
+    setLarguraPedida(largaAmpliada());
+    Promise.resolve(fonteRef.current.previa()).then(
+      (u) => vivo && setPrevia(u),
+      () => vivo && setFalhou(true),
+    );
+    return () => {
+      vivo = false;
+    };
+  }, [fonte.chave]);
+
+  // versão nítida (PDF): na largura pedida; ao aproximar, a largura sobe
+  useEffect(() => {
+    const gerar = fonteRef.current.nitida;
+    if (!gerar) return;
+    let vivo = true;
+    gerar(larguraPedida).then(
+      (u) => (vivo ? trocarNitida(u) : URL.revokeObjectURL(u)),
+      () => vivo && setFalhou(true),
+    );
+    return () => {
+      vivo = false;
+    };
+  }, [fonte.chave, larguraPedida]);
+
+  // aproximou além da resolução desenhada: redesenha maior (depois de parar)
+  useEffect(() => {
+    if (!temNitida || !ajuste || zoom === 1) return;
+    const precisa = Math.min(LARGURA_MAX, Math.ceil(ajuste.w * zoom * (window.devicePixelRatio || 1)));
+    if (precisa <= larguraPedida * 1.15) return;
+    const t = setTimeout(() => setLarguraPedida(precisa), 300);
+    return () => clearTimeout(t);
+  }, [temNitida, ajuste, zoom, larguraPedida]);
+
+  // tamanho ajustado à tela: na carga da imagem e quando a área muda
+  const medir = useCallback(() => {
+    const c = folha.current;
+    const i = img.current;
+    if (!c || !i || !i.naturalWidth) return;
+    const proporcao = i.naturalWidth / i.naturalHeight;
+    // offsetWidth/Height incluem a barra de rolagem: a medida não muda quando ela aparece
+    const w = Math.floor(Math.min(c.offsetWidth, c.offsetHeight * proporcao));
+    setAjuste((a) => (a && a.w === w ? a : { w, h: Math.floor(w / proporcao) }));
+  }, []);
+  useEffect(() => {
+    const c = folha.current;
+    if (!c) return;
+    const obs = new ResizeObserver(medir);
+    obs.observe(c);
+    return () => obs.disconnect();
+  }, [medir]);
+
+  /** zoom mantendo parado o ponto (da tela) sob o cursor; sem ponto, o centro */
+  const zoomPara = useCallback((novo: number, ponto?: { x: number; y: number }) => {
+    const c = folha.current;
+    const i = img.current;
+    const z = limitarZoom(novo);
+    if (!c || !i || z === zoomRef.current) return;
+    const rc = c.getBoundingClientRect();
+    const ri = i.getBoundingClientRect();
+    const p = ponto ?? { x: rc.left + rc.width / 2, y: rc.top + rc.height / 2 };
+    const dentro = (v: number) => Math.min(1, Math.max(0, v));
+    ancora.current = { ...p, fx: dentro((p.x - ri.left) / ri.width), fy: dentro((p.y - ri.top) / ri.height) };
+    setZoom(z);
+  }, []);
+
+  useLayoutEffect(() => {
+    const a = ancora.current;
+    const c = folha.current;
+    const i = img.current;
+    ancora.current = null;
+    if (!a || !c || !i) return;
+    const r = i.getBoundingClientRect();
+    c.scrollLeft += r.left - (a.x - a.fx * r.width);
+    c.scrollTop += r.top - (a.y - a.fy * r.height);
+  }, [zoom]);
+
+  // roda do mouse / pinça no trackpad: zoom (precisa de listener não passivo)
+  useEffect(() => {
+    const c = folha.current;
+    if (!c) return;
+    const roda = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+      // a pinça do trackpad chega como roda com Ctrl e passos pequenos
+      zoomPara(zoomRef.current * Math.exp(-delta * (e.ctrlKey ? 0.01 : 0.0018)), { x: e.clientX, y: e.clientY });
+    };
+    c.addEventListener('wheel', roda, { passive: false });
+    return () => c.removeEventListener('wheel', roda);
+  }, [zoomPara]);
+
+  // arrastar (um dedo/mouse) move a página aproximada; dois dedos = pinça
+  const toques = useRef(new Map<number, { x: number; y: number }>());
+  const arrasto = useRef<{ x: number; y: number; sl: number; st: number; moveu: boolean; noFundo: boolean } | null>(null);
+  const pinca = useRef<{ d: number; z: number } | null>(null);
+  const distancia = () => {
+    const [a, b] = [...toques.current.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
+  function aoApertar(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const c = e.currentTarget;
+    toques.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (toques.current.size === 2) {
+      pinca.current = { d: distancia(), z: zoomRef.current };
+      arrasto.current = null;
+      for (const id of toques.current.keys()) capturar(c, id);
+    } else if (toques.current.size === 1) {
+      const noFundo = e.target === c;
+      arrasto.current = { x: e.clientX, y: e.clientY, sl: c.scrollLeft, st: c.scrollTop, moveu: false, noFundo };
+    }
+  }
+  /** captura só ao arrastar: capturar no clique desviaria o duplo clique da imagem */
+  const capturar = (c: HTMLElement, id: number) => {
+    try {
+      c.setPointerCapture(id);
+    } catch {
+      /* ponteiro já solto */
+    }
+  };
+  function aoMover(e: React.PointerEvent<HTMLDivElement>) {
+    if (!toques.current.has(e.pointerId)) return;
+    toques.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const c = e.currentTarget;
+    if (pinca.current && toques.current.size === 2) {
+      const [a, b] = [...toques.current.values()];
+      zoomPara(pinca.current.z * (distancia() / pinca.current.d), { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+      return;
+    }
+    const d = arrasto.current;
+    if (!d) return;
+    const dx = e.clientX - d.x;
+    const dy = e.clientY - d.y;
+    if (!d.moveu && Math.abs(dx) + Math.abs(dy) > 4) {
+      d.moveu = true;
+      capturar(c, e.pointerId);
+    }
+    if (zoomRef.current > 1) {
+      c.scrollLeft = d.sl - dx;
+      c.scrollTop = d.st - dy;
+    }
+  }
+  function aoSoltar(e: React.PointerEvent<HTMLDivElement>) {
+    toques.current.delete(e.pointerId);
+    if (toques.current.size < 2) pinca.current = null;
+    // clique no fundo (sem arrastar e sem zoom) fecha
+    const d = arrasto.current;
+    if (e.type === 'pointerup' && d && !d.moveu && d.noFundo && zoomRef.current === 1) aoFechar();
+    if (!toques.current.size) arrasto.current = null;
+  }
+
+  // foco na própria visualização ao abrir (não num botão: assim o Enter marca a
+  // página em vez de acionar o botão focado); volta para o botão de ampliar ao fechar
+  useEffect(() => {
+    const anterior = document.activeElement as HTMLElement | null;
+    caixa.current?.focus({ preventScroll: true });
+    return () => anterior?.focus({ preventScroll: true });
+  }, []);
+
+  // na captura, para o Esc não chegar à janela de escanear (que fecharia junto).
+  // + / − / 0 funcionam sozinhos ou com Ctrl/Cmd: aí o zoom é da página, não do navegador.
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        aoFechar();
+      } else if (e.altKey) return;
+      else if (e.key === 'ArrowLeft' && !mod && tem.ant) aoIr(pos - 1);
+      else if (e.key === 'ArrowRight' && !mod && tem.prox) aoIr(pos + 1);
+      else if (e.key === '+' || e.key === '=') zoomPara(zoomRef.current * 1.25);
+      else if (e.key === '-' || e.key === '_') zoomPara(zoomRef.current / 1.25);
+      else if (e.key === '0') zoomPara(1);
+      else if (e.key === 'Enter' && !mod && !e.shiftKey && !e.repeat && aoEnter) {
+        // botão focado pelo teclado (Tab): o Enter aciona ele, como de costume
+        const foco = document.activeElement;
+        if (foco instanceof HTMLButtonElement && foco.matches(':focus-visible')) return;
+        aoEnter();
+      } else return;
+      e.preventDefault();
+    };
+    window.addEventListener('keydown', tecla, true);
+    return () => window.removeEventListener('keydown', tecla, true);
+  }, [pos, tem.ant, tem.prox, aoFechar, aoIr, aoEnter, zoomPara]);
+
+  const src = nitida ?? previa;
+  const carregando = temNitida ? !nitida : !previa;
+  const fundo = (e: React.MouseEvent) => e.target === e.currentTarget && aoFechar();
+  return createPortal(
+    <div
+      ref={caixa}
+      tabIndex={-1}
+      className="ver-pagina"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${titulo}: ${subtitulo}`}
+      onClick={fundo}
+    >
+      <div className="vp-barra">
+        <p className="vp-titulo">
+          <strong>{titulo}</strong>
+          <span>{subtitulo}</span>
+        </p>
+        <div className="vp-zoom" role="group" aria-label="Zoom">
+          <button
+            type="button"
+            className="vp-btn icone"
+            aria-label="Diminuir o zoom"
+            aria-keyshortcuts="- Control+-"
+            data-tip="Diminuir o zoom (tecla −)"
+            onClick={() => zoomPara(zoom / 1.25)}
+            disabled={zoom <= 1}
+          >
+            <Ic d={D.menos} />
+          </button>
+          <button
+            type="button"
+            className="vp-btn vp-pct"
+            aria-label={`Zoom de ${Math.round(zoom * 100)}%. Ajustar à tela`}
+            aria-keyshortcuts="0 Control+0"
+            data-tip="Ajustar à tela (tecla 0)"
+            onClick={() => zoomPara(1)}
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+          <button
+            type="button"
+            className="vp-btn icone"
+            aria-label="Aumentar o zoom"
+            aria-keyshortcuts="+ Control+="
+            data-tip="Aumentar o zoom (tecla +)"
+            onClick={() => zoomPara(zoom * 1.25)}
+            disabled={zoom >= ZOOM_MAX}
+          >
+            <IcMais />
+          </button>
+        </div>
+        <button type="button" className="vp-btn icone" aria-label="Fechar a página ampliada" onClick={aoFechar}>
+          <IcFechar />
+        </button>
+      </div>
+
+      <div
+        ref={folha}
+        className={'vp-folha' + (zoom > 1 ? ' is-zoom' : '') + (carregando ? ' is-carregando' : '')}
+        onPointerDown={aoApertar}
+        onPointerMove={aoMover}
+        onPointerUp={aoSoltar}
+        onPointerCancel={aoSoltar}
+        onPointerLeave={aoSoltar}
+        onDoubleClick={(e) => e.target === img.current && zoomPara(zoom > 1 ? 1 : 2.5, { x: e.clientX, y: e.clientY })}
+      >
+        {src && (
+          <img
+            ref={img}
+            src={src}
+            alt={fonte.alt}
+            draggable={false}
+            onLoad={medir}
+            className={ajuste ? 'is-medida' : undefined}
+            style={ajuste ? { width: ajuste.w * zoom, height: ajuste.h * zoom } : undefined}
+          />
+        )}
+        {(carregando || falhou) && (
+          <span className="vp-status" role="status">
+            {falhou ? 'Não foi possível ampliar esta página.' : 'Carregando a página…'}
+          </span>
+        )}
+      </div>
+
+      <p className="vp-dica" onClick={fundo}>
+        <kbd>+</kbd> <kbd>−</kbd> zoom · <kbd>0</kbd> ajustar · roda do mouse ou duplo clique para aproximar · arraste para mover ·{' '}
+        <kbd>←</kbd> <kbd>→</kbd> páginas ·{' '}
+        {aoEnter && rotuloEnter && (
+          <>
+            <kbd>Enter</kbd> {rotuloEnter} ·{' '}
+          </>
+        )}
+        <kbd>Esc</kbd> fechar
+      </p>
+
+      <div className="vp-barra vp-acoes" onClick={fundo}>
+        <button type="button" className="vp-btn" onClick={() => aoIr(pos - 1)} disabled={!tem.ant} aria-label="Página anterior">
+          <Ic d={D.chevronEsq} />
+          <span className="vp-rotulo">Anterior</span>
+        </button>
+        {acao}
+        <button type="button" className="vp-btn" onClick={() => aoIr(pos + 1)} disabled={!tem.prox} aria-label="Próxima página">
+          <span className="vp-rotulo">Próxima</span>
+          <Ic d={D.chevronDir} />
+        </button>
+      </div>
+    </div>,
+    document.querySelector('.ps.app') ?? document.body,
   );
 }
 
@@ -414,9 +861,13 @@ function JanelaEscanear({
   const [erro, setErro] = useState<string | null>(null);
   const [segmentos, setSegmentos] = useState<Segmento[]>([]);
   const [comuns, setComuns] = useState('');
+  /** página "para ler" aberta em tamanho grande (posição na lista) */
+  const [vendo, setVendo] = useState<number | null>(null);
   const cancelar = useRef<AbortController | null>(null);
 
   const paginas = useMemo(() => paginasALer(arquivos), [arquivos]);
+  // tirou a página que estava aberta (ou a última): mostra a vizinha, ou fecha
+  const pVendo = vendo === null ? null : (paginas[Math.min(vendo, paginas.length - 1)] ?? null);
   const pdfsParaEscolher = arquivos.filter((a): a is ArquivoPdf => a.tipo === 'pdf' && a.total > 1);
   // sem as opções em comum: quantas perguntas ficaram sem opções e a escala achada
   const base = useMemo(() => montarFormulario(segmentos), [segmentos]);
@@ -503,14 +954,14 @@ function JanelaEscanear({
         </button>
         <button
           type="button"
-          className="ps-btn secondary"
+          className="ps-btn primary"
           onClick={() => mais.current?.click()}
           disabled={cheio || abrindo}
         >
           <IcMais />
           Selecionar mais imagens
         </button>
-        <button type="button" className="ps-btn primary" onClick={() => void processar()} disabled={!paginas.length || abrindo}>
+        <button type="button" className="ps-btn primary processar" onClick={() => void processar()} disabled={!paginas.length || abrindo}>
           Processar
         </button>
       </>
@@ -547,6 +998,9 @@ function JanelaEscanear({
     <Modal
       vidro
       alta
+      classe="janela-escanear"
+      // os dois botões do rodapé são "primary": o foco inicial vai para o Processar
+      focoInicial="footer .ps-btn.processar"
       largura={760}
       titulo="Escanear formulário com IA"
       subtitulo={
@@ -595,6 +1049,17 @@ function JanelaEscanear({
                 <span className="pag" aria-hidden="true">
                   {p.fonte.pagina !== undefined && p.nome !== p.fonte.arquivo.name ? `pág. ${p.fonte.pagina}` : i + 1}
                 </span>
+                {etapa !== 'processando' && (
+                  <button
+                    type="button"
+                    className="ampliar"
+                    aria-label={`Ampliar a página ${i + 1} para ler`}
+                    data-tip="Ampliar a página"
+                    onClick={() => setVendo(i)}
+                  >
+                    <Ic d={D.telaCheia} />
+                  </button>
+                )}
                 {etapa === 'selecao' && (
                   <button
                     type="button"
@@ -611,6 +1076,30 @@ function JanelaEscanear({
           })}
         </ol>
       )}
+      {pVendo && vendo !== null && etapa !== 'processando' && (
+        <VerPagina
+          fonte={
+            pVendo.url
+              ? { chave: pVendo.chave, alt: pVendo.nome, previa: () => pVendo.url! }
+              : { ...fontePdf(pVendo.fonte.arquivo, pVendo.fonte.pagina ?? 1, pVendo.fonte.arquivo.name), chave: pVendo.chave }
+          }
+          pos={Math.min(vendo, paginas.length - 1)}
+          total={paginas.length}
+          titulo={`Página ${Math.min(vendo, paginas.length - 1) + 1} de ${paginas.length} para ler`}
+          subtitulo={pVendo.nome}
+          aoIr={setVendo}
+          aoFechar={() => setVendo(null)}
+          acao={
+            etapa === 'selecao' ? (
+              <button type="button" className="vp-btn" onClick={() => tirar(pVendo)}>
+                <Ic d={D.lixeira} />
+                {pVendo.fonte.pagina !== undefined && pVendo.nome !== pVendo.fonte.arquivo.name ? 'Desmarcar esta página' : 'Tirar esta página'}
+              </button>
+            ) : undefined
+          }
+        />
+      )}
+
       <input
         ref={mais}
         type="file"

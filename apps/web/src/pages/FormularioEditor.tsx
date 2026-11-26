@@ -434,7 +434,6 @@ export function FormularioEditor() {
                     <textarea id="dsc" maxLength={500} value={descricao} onChange={(e) => setDescricao(e.target.value)} />
                   </div>
                   <div className="ps-helper">
-                    Até 500 caracteres. Nome, descrição e tipo podem mudar mesmo com respostas.
                     <span className="ps-counter">{descricao.length}/500</span>
                   </div>
                 </div>

@@ -80,6 +80,17 @@ async function gerarMiniatura(arquivo: File, n: number): Promise<string> {
 }
 
 /**
+ * Página em tamanho grande (para ver de perto qual é). Não fica guardada: quem
+ * pede solta o endereço blob: com URL.revokeObjectURL quando não precisar mais.
+ */
+export async function paginaAmpliada(arquivo: File, n: number, largura: number): Promise<string> {
+  const c = await desenharPagina(arquivo, n, largura);
+  const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/png'));
+  if (!blob) throw new Error('Não foi possível desenhar a página.');
+  return URL.createObjectURL(blob);
+}
+
+/**
  * Miniatura da página (endereço blob: para usar num <img>). Gerada na primeira
  * vez que é pedida e guardada até `fecharPdfs`.
  */
