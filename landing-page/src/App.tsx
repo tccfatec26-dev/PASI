@@ -11,6 +11,7 @@ import Publicos from "./components/Publicos/Publicos";
 import Seguranca from "./components/Seguranca/Seguranca";
 import Solucao from "./components/Solucao/Solucao";
 import Contato from "./components/Contato/Contato";
+import Assistente from "./components/Assistente/Assistente";
 
 function App() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -72,6 +73,7 @@ function App() {
       </main>
 
       <Footer />
+      <Assistente />
     </>
   );
 }

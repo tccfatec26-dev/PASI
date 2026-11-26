@@ -18,6 +18,10 @@ services:
       # E-mail exibido na seção de contato (definido no painel do Render)
       - key: VITE_CONTACT_EMAIL
         sync: false
+      # API da assistente digital (repositório chat_com_alunos). Sem esta variável,
+      # o site usa o endereço padrão definido em src/components/Assistente/api.ts
+      - key: VITE_ASSISTENTE_API_URL
+        value: https://finbot-api-rpj9.onrender.com
 
   # API NestJS (plano gratuito: hiberna após ~15 min sem acesso e o disco
   # é efêmero — arquivos em uploads/ somem a cada deploy/reinício)
