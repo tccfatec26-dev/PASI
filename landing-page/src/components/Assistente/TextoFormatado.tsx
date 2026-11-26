@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-// A API responde em markdown simples (negrito, itálico, listas e links).
+// A API responde em markdown simples (negrito, itálico, listas, tabelas e links).
 // Montamos os elementos React à mão, sem innerHTML, para nunca injetar HTML vindo de fora.
 
 const PADRAO_INLINE = /(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|https?:\/\/[^\s<>()]+)/g;
@@ -28,7 +28,17 @@ function inline(texto: string, chave: string): ReactNode[] {
   });
 }
 
-type Bloco = { tipo: "p"; linhas: string[] } | { tipo: "ul" | "ol"; itens: string[] };
+type Bloco =
+  | { tipo: "p"; linhas: string[] }
+  | { tipo: "ul" | "ol"; itens: string[] }
+  | { tipo: "tabela"; cabecalho: string[]; linhas: string[][] };
+
+/** "| a | b |" -> ["a", "b"] */
+function celulas(linha: string) {
+  return linha.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+}
+
+const SEPARADOR_TABELA = /^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/;
 
 function blocos(texto: string): Bloco[] {
   const resultado: Bloco[] = [];
@@ -37,6 +47,13 @@ function blocos(texto: string): Bloco[] {
     const ultimo = resultado[resultado.length - 1];
     if (!linha) {
       resultado.push({ tipo: "p", linhas: [] });
+      continue;
+    }
+    // tabela em markdown: a 1ª linha é o cabeçalho, a linha de traços é ignorada
+    if (linha.startsWith("|")) {
+      if (SEPARADOR_TABELA.test(linha)) continue;
+      if (ultimo && ultimo.tipo === "tabela") ultimo.linhas.push(celulas(linha));
+      else resultado.push({ tipo: "tabela", cabecalho: celulas(linha), linhas: [] });
       continue;
     }
     const marcador = linha.match(/^([-*•]|\d+[.)])\s+(.*)$/);
@@ -49,7 +66,48 @@ function blocos(texto: string): Bloco[] {
     if (ultimo && ultimo.tipo === "p") ultimo.linhas.push(linha);
     else resultado.push({ tipo: "p", linhas: [linha] });
   }
-  return resultado.filter((b) => (b.tipo === "p" ? b.linhas.length > 0 : b.itens.length > 0));
+  return resultado.filter((b) => {
+    if (b.tipo === "p") return b.linhas.length > 0;
+    if (b.tipo === "tabela") return b.linhas.length > 0 || b.cabecalho.length > 0;
+    return b.itens.length > 0;
+  });
+}
+
+function ehTelefone(coluna: string) {
+  return /telefone|fone|contato/i.test(coluna);
+}
+
+/** Cada linha da tabela vira um cartão: no painel estreito do chat, uma tabela larga não cabe. */
+function TabelaEmCartoes({ cabecalho, linhas, chave }: { cabecalho: string[]; linhas: string[][]; chave: string }) {
+  if (linhas.length === 0) return <p>{inline(cabecalho.join(" · "), chave)}</p>;
+  return (
+    <div className="assistente-tabela">
+      {linhas.map((linha, i) => (
+        <div className="assistente-tabela-item" key={i}>
+          <p className="assistente-tabela-titulo">{inline(linha[0] ?? "", `${chave}-${i}-t`)}</p>
+          <dl>
+            {cabecalho.slice(1).map((coluna, j) => {
+              const valor = linha[j + 1];
+              if (!valor || valor === "-" || valor === "—") return null;
+              const digitos = valor.replace(/\D/g, "");
+              return (
+                <div key={j}>
+                  <dt>{coluna.replace(/\*+$/, "")}</dt>
+                  <dd>
+                    {ehTelefone(coluna) && digitos.length >= 10 && digitos.length <= 11 ? (
+                      <a href={`tel:+55${digitos}`}>{valor}</a>
+                    ) : (
+                      inline(valor, `${chave}-${i}-${j}`)
+                    )}
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function TextoFormatado({ texto }: { texto: string }) {
@@ -67,6 +125,9 @@ function TextoFormatado({ texto }: { texto: string }) {
               ))}
             </p>
           );
+        }
+        if (bloco.tipo === "tabela") {
+          return <TabelaEmCartoes key={i} cabecalho={bloco.cabecalho} linhas={bloco.linhas} chave={String(i)} />;
         }
         const Lista = bloco.tipo;
         return (
