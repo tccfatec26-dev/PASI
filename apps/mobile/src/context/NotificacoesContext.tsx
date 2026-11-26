@@ -1,8 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { useAuth } from './AuthContext';
-import { useFeedback } from './FeedbackContext';
 import { notificacoesService, type ListaNotificacoes } from '../services/notificacoes';
+import { dadosDoPush, registrarPush } from '../services/push';
+import { navigate, navigationRef } from '../navigation/navigationRef';
 
 /** De quanto em quanto tempo o app pergunta se chegou notificação nova (com o app aberto). */
 const INTERVALO = 30_000;
@@ -25,25 +27,24 @@ const Ctx = createContext<Valor>({
   marcarTodas: async () => {},
 });
 
-/** usuário que já recebeu o aviso "você tem N notificações" nesta abertura do app */
-let avisouAoAbrir: number | null = null;
-
 /**
- * Consulta as notificações do paciente a cada 30 s enquanto o app está aberto
- * (e na hora, quando ele volta para a frente). Notificação nova aparece no
- * aviso da parte de baixo da tela — e é lida em voz alta se a leitura estiver
- * ligada. Ao entrar, avisa uma vez quantas estão sem ler.
+ * Notificações do paciente.
+ *
+ * O aviso de notificação nova é o PUSH do Android (services/push.ts): chega na
+ * barra do celular mesmo com o app fechado e, com ele aberto, aparece no topo
+ * da tela. Tocar nele abre o atendimento. Ao entrar, o app registra o aparelho
+ * para o push.
+ *
+ * O número do sino vem da API: consultada ao chegar um push, a cada 30 s com o
+ * app aberto e quando ele volta para a frente.
  */
 export function NotificacoesProvider({ children }: { children: React.ReactNode }) {
   const { token, usuario } = useAuth();
-  const { toast } = useFeedback();
   const idUsuario = token ? usuario?.id_usuario ?? null : null;
   const [naoLidas, setNaoLidas] = useState(0);
   const [versao, setVersao] = useState(0);
   /** maior id já visto: o que vier acima disso é novo */
   const ultimoVisto = useRef<number | null>(null);
-  const toastRef = useRef(toast);
-  toastRef.current = toast;
 
   const consultar = useCallback(async () => {
     if (idUsuario === null) return;
@@ -55,21 +56,8 @@ export function NotificacoesProvider({ children }: { children: React.ReactNode }
     }
     setNaoLidas(r.nao_lidas);
     const maior = r.data[0]?.id_notificacao ?? 0;
-    if (ultimoVisto.current === null) {
-      if (r.nao_lidas > 0 && avisouAoAbrir !== idUsuario) {
-        toastRef.current(
-          r.nao_lidas === 1 ? 'Você tem 1 notificação nova.' : `Você tem ${r.nao_lidas} notificações novas.`,
-          'info',
-        );
-      }
-      avisouAoAbrir = idUsuario;
-    } else if (maior > ultimoVisto.current) {
-      const novas = r.data.filter((n) => n.id_notificacao > (ultimoVisto.current ?? 0) && !n.lida);
-      // um aviso por vez na tela: a mais recente, ou o total
-      if (novas.length === 1) toastRef.current(`${novas[0].titulo}. ${novas[0].mensagem}`, 'info');
-      else if (novas.length > 1) toastRef.current(`Você tem ${novas.length} notificações novas.`, 'info');
-      setVersao((v) => v + 1);
-    }
+    // chegou notificação nova: as listas abertas (sino, atendimentos) recarregam
+    if (ultimoVisto.current !== null && maior > ultimoVisto.current) setVersao((v) => v + 1);
     ultimoVisto.current = Math.max(ultimoVisto.current ?? 0, maior);
   }, [idUsuario]);
 
@@ -77,8 +65,50 @@ export function NotificacoesProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     ultimoVisto.current = null;
     setNaoLidas(0);
-    if (idUsuario === null) avisouAoAbrir = null;
   }, [idUsuario]);
+
+  // entrou: registra este aparelho para receber o push desta conta
+  useEffect(() => {
+    if (idUsuario !== null) void registrarPush();
+  }, [idUsuario]);
+
+  // push chegou com o app aberto: atualiza o número do sino na hora
+  useEffect(() => {
+    if (idUsuario === null) return;
+    const sub = Notifications.addNotificationReceivedListener(() => void consultar());
+    return () => sub.remove();
+  }, [idUsuario, consultar]);
+
+  // tocou no push (com o app aberto, em segundo plano ou fechado): marca como
+  // lida e abre o atendimento. Com o app fechado, espera o login e a navegação.
+  const resposta = Notifications.useLastNotificationResponse();
+  useEffect(() => {
+    if (!resposta || idUsuario === null) return;
+    if (resposta.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+    const dados = dadosDoPush(resposta.notification);
+    let tentativas = 0;
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const abrir = () => {
+      if (!navigationRef.isReady()) {
+        if (++tentativas < 20) t = setTimeout(abrir, 250);
+        return;
+      }
+      void Notifications.clearLastNotificationResponseAsync();
+      if (dados.id_notificacao) {
+        notificacoesService
+          .marcarLida(dados.id_notificacao)
+          .then((r) => {
+            setNaoLidas(r.nao_lidas);
+            setVersao((v) => v + 1);
+          })
+          .catch(() => null);
+      }
+      if (dados.id_atendimento) navigate('FormulariosAtendimento', { idAtendimento: dados.id_atendimento, descricao: 'Atendimento' });
+      else navigate('Notificacoes');
+    };
+    abrir();
+    return () => clearTimeout(t);
+  }, [resposta, idUsuario]);
 
   useEffect(() => {
     if (idUsuario === null) return;

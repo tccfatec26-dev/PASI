@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
+import { PushService } from './push.service';
 import { SituacaoAtendimento, TipoNotificacao } from '../common/constants';
 import type { AuthUser } from '../auth/current-user.decorator';
 import { QueryNotificacaoDto } from './dto/query-notificacao.dto';
@@ -45,6 +46,9 @@ const CAMPOS = {
  * paciente incluído em um atendimento e o aviso ao profissional de formulário
  * respondido. O envio não espera o Brevo (a resposta da ação sai na hora) e
  * uma falha fica só no log.
+ *
+ * Push: todo aviso gravado também vai como notificação push para os aparelhos
+ * (app) de quem recebe, ver PushService. Também sem esperar e sem derrubar.
  */
 @Injectable()
 export class NotificacoesService {
@@ -53,6 +57,7 @@ export class NotificacoesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
+    private readonly push: PushService,
   ) {}
 
   // ----------------------------------------------------------------
@@ -261,8 +266,20 @@ export class NotificacoesService {
   }) {
     // ninguém é avisado da própria ação
     if (dados.id_usuario === dados.id_usuario_origem) return false;
-    await this.prisma.notificacao.create({
+    const n = await this.prisma.notificacao.create({
       data: { ...dados, titulo: limitar(dados.titulo, 100), mensagem: limitar(dados.mensagem, 300) },
+      select: { id_notificacao: true, titulo: true, mensagem: true },
+    });
+    // o mesmo aviso chega na barra do celular, mesmo com o app fechado
+    this.push.enviarSemEsperar(dados.id_usuario, {
+      titulo: n.titulo,
+      mensagem: n.mensagem,
+      dados: {
+        id_notificacao: n.id_notificacao,
+        id_tipo_notificacao: dados.id_tipo_notificacao,
+        id_atendimento: dados.id_atendimento ?? null,
+        id_formulario: dados.id_formulario ?? null,
+      },
     });
     return true;
   }

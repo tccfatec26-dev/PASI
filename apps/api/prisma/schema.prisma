@@ -346,6 +346,7 @@ model usuario {
   log_adm_geral_alvo                                                      log_adm_geral[]          @relation("log_adm_geral_alvo")
   notificacao                                                             notificacao[]            @relation("notificacao_destino")
   notificacao_origem                                                      notificacao[]            @relation("notificacao_origem")
+  dispositivo_push                                                        dispositivo_push[]
 }
 
 /// Tipos de notificação (ids fixos: 1 incluído em atendimento, 2 novos
@@ -377,4 +378,17 @@ model notificacao {
   usuario_origem      usuario?         @relation("notificacao_origem", fields: [id_usuario_origem], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_notif_origem")
 
   @@index([id_usuario, id_notificacao(sort: Desc)], map: "ix_notif_usuario")
+}
+
+/// Aparelhos com o app logado, para o push (script sql/2026-11-25_push_dispositivos.sql)
+model dispositivo_push {
+  id_dispositivo_push Int      @id(map: "pk_dispositivo_push") @default(autoincrement())
+  id_usuario          Int
+  token               String   @unique(map: "uq_dispositivo_push_token") @db.VarChar(255)
+  plataforma          String?  @db.VarChar(20)
+  dt_cadastro         DateTime @default(now()) @db.Timestamp(6)
+  dt_atualizacao      DateTime @default(now()) @db.Timestamp(6)
+  usuario             usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade, onUpdate: NoAction, map: "fk_disp_push_usuario")
+
+  @@index([id_usuario], map: "ix_disp_push_usuario")
 }

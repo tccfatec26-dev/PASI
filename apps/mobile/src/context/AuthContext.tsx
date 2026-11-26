@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setAuthToken } from '../config/api';
 import { TipoUsuario } from '../constants/dominio';
+import { removerPush } from '../services/push';
 
 export interface AuthUser {
   id_usuario: number;
@@ -57,6 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    // antes de apagar o login: o aparelho deixa de receber o push desta conta
+    removerPush();
     await AsyncStorage.multiRemove(['@pasi:token', '@pasi:usuario']);
     setAuthToken(null);
     setToken(null);
