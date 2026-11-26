@@ -32,6 +32,8 @@ export function FormulariosAtendimentoScreen() {
   const { idAtendimento, descricao } = useRoute<RouteT>().params;
   const [atendimento, setAtendimento] = useState<Atendimento | null>(null);
   const [loading, setLoading] = useState(true);
+  /** formulário sendo iniciado: a API pode demorar (ex.: servidor acordando) */
+  const [iniciando, setIniciando] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -48,6 +50,8 @@ export function FormulariosAtendimentoScreen() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const iniciarFormulario = async (af: AtendimentoFormulario) => {
+    if (iniciando !== null) return; // já tem um abrindo: ignora toques repetidos
+    setIniciando(af.id_formulario);
     try {
       await formulariosService.iniciar(idAtendimento, af.id_formulario);
       navigation.navigate('ResponderFormulario', {
@@ -57,6 +61,8 @@ export function FormulariosAtendimentoScreen() {
       });
     } catch (err) {
       toast(mensagemErroApi(err, 'Não foi possível iniciar o formulário.'), 'error');
+    } finally {
+      setIniciando(null);
     }
   };
 
@@ -143,11 +149,22 @@ export function FormulariosAtendimentoScreen() {
                 ) : (
                   <TouchableOpacity
                     onPress={() => iniciarFormulario(af)}
-                    className="bg-green-500 border border-green-500 rounded-xl px-4 py-2"
+                    disabled={iniciando !== null}
+                    className={`bg-green-500 border border-green-500 rounded-xl px-4 py-2 flex-row items-center gap-2 ${
+                      iniciando !== null && iniciando !== af.id_formulario ? 'opacity-50' : ''
+                    }`}
                     accessibilityRole="button"
-                    accessibilityLabel={`Iniciar: ${af.formulario.nome ?? 'Formulário'}`}
+                    accessibilityLabel={
+                      iniciando === af.id_formulario
+                        ? `Abrindo: ${af.formulario.nome ?? 'Formulário'}`
+                        : `Iniciar: ${af.formulario.nome ?? 'Formulário'}`
+                    }
+                    accessibilityState={{ busy: iniciando === af.id_formulario, disabled: iniciando !== null }}
                   >
-                    <Text className="text-white text-sm font-semibold">Iniciar</Text>
+                    {iniciando === af.id_formulario && <ActivityIndicator size="small" color="#ffffff" />}
+                    <Text className="text-white text-sm font-semibold">
+                      {iniciando === af.id_formulario ? 'Abrindo…' : 'Iniciar'}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>

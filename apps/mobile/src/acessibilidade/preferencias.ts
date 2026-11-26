@@ -25,10 +25,19 @@ export const FONTE_MAX = 2;
  * Tamanho base do texto (rem do NativeWind; o padrão dele é 14). As classes
  * text-xs, text-sm... e os espaçamentos em rem crescem juntos, como o zoom de
  * texto do painel web.
+ *
+ * Desde 2026-11-25 o "Normal" é 16 (antes 14, que ficava pequeno no celular;
+ * 16 é o antigo "Maior"): Normal 16, Maior 18, Muito maior 20.
  */
-const REM_BASE = 14;
-const ESCALA = [1, 1.15, 1.3] as const;
+const REM_BASE = 16;
+const ESCALA = [1, 1.125, 1.25] as const;
 const CHAVE = '@pasi:a11y';
+/**
+ * Versão da escala gravada junto com as preferências. Sem ela (gravado antes
+ * da troca), o nível escolhido desce um degrau para manter o mesmo tamanho:
+ * o antigo "Maior" (≈16) é o novo "Normal".
+ */
+const VERSAO_ESCALA = 2;
 const PADRAO: PrefsA11y = { fonte: 0, contraste: false, pretoBranco: false, leitura: false, movimento: false, tema: 'sistema' };
 
 let atual: PrefsA11y = PADRAO;
@@ -54,10 +63,21 @@ function aplicar(p: PrefsA11y) {
   ouvintes.forEach((f) => f());
 }
 
+const gravar = (p: PrefsA11y) =>
+  AsyncStorage.setItem(CHAVE, JSON.stringify({ ...p, escala: VERSAO_ESCALA })).catch(() => null);
+
 /** Carrega as preferências salvas (o App espera isso antes de mostrar a primeira tela). */
 export async function carregarPrefs() {
   try {
-    aplicar(normalizar(JSON.parse((await AsyncStorage.getItem(CHAVE)) ?? 'null')));
+    const salvo = JSON.parse((await AsyncStorage.getItem(CHAVE)) ?? 'null') as (Partial<PrefsA11y> & { escala?: number }) | null;
+    if (salvo && typeof salvo === 'object' && salvo.escala !== VERSAO_ESCALA) {
+      // gravado com a escala antiga: mesmo tamanho na nova (um degrau abaixo)
+      const p = normalizar({ ...salvo, fonte: Math.max(0, (salvo.fonte ?? 0) - 1) as PrefsA11y['fonte'] });
+      aplicar(p);
+      gravar(p);
+      return;
+    }
+    aplicar(normalizar(salvo));
   } catch {
     aplicar(PADRAO);
   }
@@ -66,7 +86,7 @@ export async function carregarPrefs() {
 export function definirPrefs(mudanca: Partial<PrefsA11y>) {
   const p = { ...atual, ...mudanca };
   aplicar(p);
-  AsyncStorage.setItem(CHAVE, JSON.stringify(p)).catch(() => null);
+  gravar(p);
 }
 
 /** Volta tudo ao padrão (o tema também volta a seguir o celular). */
