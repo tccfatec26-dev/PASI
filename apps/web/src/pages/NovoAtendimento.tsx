@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as atendApi from '../api/atendimentos';
 import * as formApi from '../api/formularios';
@@ -12,8 +12,7 @@ import { BarraBusca, PainelFiltros } from '../components/Lista';
 import { Alerta, Select, MensagemErro } from '../components/Form';
 import { useAvisos } from '../components/Avisos';
 import { Esq, EsqEscolhas } from '../components/Esqueleto';
-import { Seg } from '../components/Seg';
-import { IcBusca, IcFormulario } from '../components/icons';
+import { D, Ic, IcBusca, IcFormulario } from '../components/icons';
 import { cpf, iniciais, plural } from '../lib/format';
 
 /** 2.3 Novo atendimento (NovoAtendimento.dc.html). */
@@ -45,6 +44,16 @@ export function NovoAtendimento() {
       vivo = false;
     };
   }, [buscaPacAtrasada]);
+
+  // escolhido: o nome vai para o Resumo e o e-mail para o título da seção;
+  // a busca é limpa (a lista some) e o foco volta para o campo
+  const campoPac = useRef<HTMLInputElement>(null);
+  function escolherPaciente(p: PacienteResumo) {
+    setPaciente(p);
+    setBuscaPac('');
+    setPacientes([]);
+    campoPac.current?.focus();
+  }
 
   // Unidade
   const [idUnidade, setIdUnidade] = useState<number | ''>('');
@@ -131,16 +140,30 @@ export function NovoAtendimento() {
                     *
                   </span>
                 </PanelTitle>
+                {/* e-mail do paciente escolhido, no lado oposto do título */}
+                <span className="pac-escolhido" id="pac-escolhido" aria-live="polite">
+                  {paciente && (
+                    <>
+                      <span className="ps-sr">Paciente selecionado: {paciente.nome}, e-mail </span>
+                      <Ic d={D.email} />
+                      <span className="pac-email" title={paciente.email}>
+                        {paciente.email}
+                      </span>
+                    </>
+                  )}
+                </span>
               </header>
               <div className="pb">
                 <div className="ps-field">
                   <label className="ps-search" style={{ maxWidth: 'none' }}>
                     <IcBusca style={{ color: 'var(--Text-muted)' }} />
                     <input
+                      ref={campoPac}
                       id="pac"
                       aria-labelledby="h-pac"
+                      aria-describedby={paciente ? 'pac-escolhido' : undefined}
                       type="search"
-                      placeholder="Digite o nome ou o CPF do paciente..."
+                      placeholder={paciente ? 'Para trocar, digite o nome ou o CPF de outro paciente...' : 'Digite o nome ou o CPF do paciente...'}
                       value={buscaPac}
                       onChange={(e) => setBuscaPac(e.target.value)}
                       aria-autocomplete="list"
@@ -148,34 +171,32 @@ export function NovoAtendimento() {
                   </label>
                   {tentou && !paciente && <MensagemErro>Escolha o paciente.</MensagemErro>}
                 </div>
-                {(pacientes.length > 0 || paciente) && (
+                {buscaPac.trim().length >= 2 && pacientes.length > 0 && (
                   <div className="ps-menu" role="listbox" aria-label="Pacientes encontrados" style={{ maxWidth: 'none' }}>
-                    {(pacientes.some((p) => p.id_usuario === paciente?.id_usuario) || !paciente ? pacientes : [paciente, ...pacientes]).map(
-                      (p) => {
-                        const on = p.id_usuario === paciente?.id_usuario;
-                        return (
-                          <button
-                            key={p.id_usuario}
-                            type="button"
-                            className={'ps-option' + (on ? ' is-selected' : '')}
-                            role="option"
-                            aria-selected={on}
-                            onClick={() => setPaciente(p)}
-                            style={{ width: '100%', border: 0, backgroundColor: 'transparent', cursor: 'pointer', textAlign: 'left' }}
-                          >
-                            <span className="avatar" aria-hidden="true" style={{ width: 32, height: 32, lineHeight: '32px', fontSize: 12 }}>
-                              {iniciais(p.nome)}
-                            </span>
-                            <span style={{ flex: 1 }}>
-                              {p.nome}
-                              <small>
-                                CPF {cpf(p.cpf)} · {p.email}
-                              </small>
-                            </span>
-                          </button>
-                        );
-                      },
-                    )}
+                    {pacientes.map((p) => {
+                      const on = p.id_usuario === paciente?.id_usuario;
+                      return (
+                        <button
+                          key={p.id_usuario}
+                          type="button"
+                          className={'ps-option' + (on ? ' is-selected' : '')}
+                          role="option"
+                          aria-selected={on}
+                          onClick={() => escolherPaciente(p)}
+                          style={{ width: '100%', border: 0, backgroundColor: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                        >
+                          <span className="avatar" aria-hidden="true" style={{ width: 32, height: 32, lineHeight: '32px', fontSize: 12 }}>
+                            {iniciais(p.nome)}
+                          </span>
+                          <span style={{ flex: 1 }}>
+                            {p.nome}
+                            <small>
+                              CPF {cpf(p.cpf)} · {p.email}
+                            </small>
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
                 {buscaPac.trim().length >= 2 && !buscandoPac && pacientes.length === 0 && (
@@ -256,17 +277,17 @@ export function NovoAtendimento() {
                   }}
                 >
                   <div className="fg">
-                    <span className="ps-label">Tipo de unidade</span>
-                    <Seg
-                      papel="group"
-                      rotulo="Tipo de unidade"
-                      valor={fRasc}
-                      aoMudar={setFRasc}
-                      opcoes={[
-                        { valor: 'todos' as const, rotulo: 'Todos' },
-                        ...(tipos ?? []).map((t) => ({ valor: t.id_tipo_formulario, rotulo: t.nome })),
-                      ]}
-                    />
+                    <label className="ps-label" htmlFor="f-tipo">
+                      Tipo de unidade
+                    </label>
+                    <Select id="f-tipo" valor={fRasc} aoMudar={(v) => setFRasc(v === 'todos' ? 'todos' : Number(v))}>
+                      <option value="todos">Todos</option>
+                      {(tipos ?? []).map((t) => (
+                        <option key={t.id_tipo_formulario} value={t.id_tipo_formulario}>
+                          {t.nome}
+                        </option>
+                      ))}
+                    </Select>
                   </div>
                 </PainelFiltros>
                 {carregandoForms && !forms ? (

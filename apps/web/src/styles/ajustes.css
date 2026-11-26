@@ -48,9 +48,17 @@
 /* ---------- Janela de vidro fosco (incluir/editar pergunta): a lista aparece atrás ---------- */
 /* O desfoque do vidro só alcança a página se nenhum ancestral da janela tiver opacity/filter/backdrop-filter
    ativos (eles viram a "raiz" do desfoque). Por isso o fundo escuro aqui não usa filtro e entra animando a
-   cor em vez da opacidade, e a janela entra só com movimento. */
+   cor em vez da opacidade, e a janela entra só com movimento.
+   O vidro da janela fica num ::before, e não na própria .ps-modal: um backdrop-filter na janela a tornaria
+   raiz do desfoque e o Chrome deixaria de desfocar o rodapé (vidro dentro de vidro não desfoca). */
 .ps .ps-scrim.vidro { background: rgba(16, 39, 70, .2); -webkit-backdrop-filter: none; backdrop-filter: none; animation: vidro-fundo .24s ease-out both; }
-.ps .ps-scrim.vidro .ps-modal { background: color-mix(in srgb, var(--White) 52%, transparent); -webkit-backdrop-filter: blur(26px) saturate(170%); backdrop-filter: blur(26px) saturate(170%); border: 1px solid rgba(255, 255, 255, .55); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 24px 60px rgba(10, 31, 51, .22); animation: vidro-sobe .42s cubic-bezier(.16, 1, .3, 1) both; }
+.ps .ps-scrim.vidro .ps-modal { position: relative; isolation: isolate; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; border: 1px solid rgba(255, 255, 255, .55); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 24px 60px rgba(10, 31, 51, .22); animation: vidro-sobe .42s cubic-bezier(.16, 1, .3, 1) both; }
+.ps .ps-scrim.vidro .ps-modal::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: color-mix(in srgb, var(--White) 52%, transparent);
+  -webkit-backdrop-filter: blur(26px) saturate(170%); backdrop-filter: blur(26px) saturate(170%);
+}
+html.a11y-contraste .ps .ps-scrim.vidro .ps-modal::before { display: none; }
 @keyframes vidro-fundo { from { background-color: transparent; } }
 @keyframes vidro-sobe { from { transform: translateY(56px) scale(.97); } to { transform: none; } }
 .ps .ps-scrim.vidro .ps-modal footer { background: color-mix(in srgb, var(--Background) 35%, transparent); }
@@ -156,7 +164,8 @@ html[data-theme="dark"] .ps .ps-scrim .ps-modal > .ico.ok { --ico-bg: #2f8a55; }
 
 /* Vidro fosco */
 html[data-theme="dark"] .ps .ps-scrim.vidro { background: rgba(2, 8, 18, .35); }
-html[data-theme="dark"] .ps .ps-scrim.vidro .ps-modal { background: color-mix(in srgb, var(--Surface-3) 55%, transparent); border-color: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 24px 60px rgba(0, 0, 0, .5); }
+html[data-theme="dark"] .ps .ps-scrim.vidro .ps-modal::before { background: color-mix(in srgb, var(--Surface-3) 55%, transparent); }
+html[data-theme="dark"] .ps .ps-scrim.vidro .ps-modal { border-color: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 24px 60px rgba(0, 0, 0, .5); }
 html[data-theme="dark"] .ps .ps-scrim.vidro .ps-modal footer { background: color-mix(in srgb, var(--Surface-2) 38%, transparent); }
 html[data-theme="dark"] .ps .ps-scrim.vidro .ps-modal .ps-choice, html[data-theme="dark"] .ps .ps-scrim.vidro .ps-modal .ps-control { background: color-mix(in srgb, var(--Surface-2) 80%, transparent); }
 html[data-theme="dark"] .ps .ps-scrim.vidro .ps-modal .ps-choice.is-checked { background: color-mix(in srgb, var(--Selected-bg) 90%, transparent); }
@@ -200,14 +209,22 @@ html.a11y-movimento .ps .ps-scrim.vidro, html.a11y-movimento .ps .ps-scrim.vidro
 
 /* Saída do vidro (a cópia criada por behaviors/modal.js mantém .vidro): precisa vencer as animações de
    entrada acima, senão a janela "entra" de novo antes de sumir. O fundo clareia pela cor (sem opacity no
-   pai, para o desfoque continuar valendo) e a janela desce e esmaece. */
+   pai, para o desfoque continuar valendo) e a janela desce e esmaece. O esmaecer vai no vidro (::before) e
+   em cada filho, não na janela: opacity na janela cortaria o desfoque do vidro e do rodapé durante a saída. */
 .ps .ps-scrim.vidro.is-saindo { pointer-events: none; animation: vidro-fundo-sai .28s ease-in both; }
 .ps .ps-scrim.vidro.is-saindo .ps-modal { animation: vidro-desce .28s cubic-bezier(.7, 0, .84, 0) both; }
+.ps .ps-scrim.vidro.is-saindo .ps-modal::before,
+.ps .ps-scrim.vidro.is-saindo .ps-modal > * { animation: vidro-some .28s cubic-bezier(.7, 0, .84, 0) both; }
 .ps .ps-scrim.vidro.is-saindo.so-janela { background: transparent; animation: none; }
 @keyframes vidro-fundo-sai { to { background-color: transparent; } }
-@keyframes vidro-desce { to { transform: translateY(56px) scale(.97); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .ps .ps-scrim.vidro.is-saindo, .ps .ps-scrim.vidro.is-saindo .ps-modal { animation: none; } }
-html.a11y-movimento .ps .ps-scrim.vidro.is-saindo, html.a11y-movimento .ps .ps-scrim.vidro.is-saindo .ps-modal { animation: none; }
+@keyframes vidro-desce { to { transform: translateY(56px) scale(.97); border-color: transparent; box-shadow: none; } }
+@keyframes vidro-some { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .ps .ps-scrim.vidro.is-saindo, .ps .ps-scrim.vidro.is-saindo .ps-modal,
+  .ps .ps-scrim.vidro.is-saindo .ps-modal::before, .ps .ps-scrim.vidro.is-saindo .ps-modal > * { animation: none; }
+}
+html.a11y-movimento .ps .ps-scrim.vidro.is-saindo, html.a11y-movimento .ps .ps-scrim.vidro.is-saindo .ps-modal,
+html.a11y-movimento .ps .ps-scrim.vidro.is-saindo .ps-modal::before, html.a11y-movimento .ps .ps-scrim.vidro.is-saindo .ps-modal > * { animation: none; }
 
 /* Erro de validação da janela de pergunta: fica no rodapé, sempre à vista (o corpo é que rola) */
 .ps .ps-modal.alta > footer .erro-rodape { flex: 1 1 100%; text-align: left; }
@@ -483,6 +500,150 @@ html.a11y-movimento .ps.app.em-gaveta > .side-slot, html.a11y-movimento .gaveta-
 @keyframes selo-entra { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
 .ps .escanear-dica { margin: 0; font-size: 14px; color: var(--Text-muted); }
 .ps .escanear-status { margin: 0; font: 600 14px var(--font-sans); color: var(--Navy-600); }
+.ps .escanear-contagem { margin: 0 0 -6px; font-size: 14px; color: var(--Text-muted); }
+.ps .escanear-contagem strong { color: var(--Navy-600); }
+.ps .escanear-vazio {
+  margin: 0; padding: 18px 16px; border: 1px dashed var(--Border-card); border-radius: 12px;
+  font-size: 14px; color: var(--Text-muted); text-align: center;
+}
+/* página de PDF ainda sem miniatura (gerada quando aparece na tela) */
+.ps .mini-carregando {
+  display: block; width: 100%; height: 100%;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .55) 50%, transparent 70%) var(--Softblue);
+  background-size: 220% 100%; animation: mini-carregando 1.3s linear infinite;
+}
+.ps .mini-carregando.falhou { animation: none; background: var(--Softblue); }
+@keyframes mini-carregando { from { background-position: 120% 0; } to { background-position: -100% 0; } }
+
+/* ---------- Escolha das páginas do PDF ---------- */
+.ps .escolher-paginas {
+  display: flex; flex-direction: column; gap: 12px; padding: 16px;
+  border: 1px solid var(--Border-card); border-radius: 14px;
+}
+.ps .escolher-paginas .ep-topo { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; }
+.ps .escolher-paginas .ep-titulo { min-width: 0; flex: 1 1 260px; }
+.ps .escolher-paginas h3 { margin: 0; font: 700 15px/1.35 var(--font-sans); color: var(--Navy-600); overflow-wrap: anywhere; }
+.ps .escolher-paginas .ep-titulo p { margin: 4px 0 0; font-size: 14px; color: var(--Text-muted); }
+.ps .escolher-paginas .ep-acoes { display: flex; flex-wrap: wrap; gap: 4px; }
+.ps .escolher-paginas .ep-acoes svg { width: 16px; height: 16px; }
+.ps .escolher-paginas .ep-faixa { display: flex; flex-direction: column; gap: 6px; }
+.ps .escolher-paginas .ep-faixa .ps-label { margin: 0; }
+.ps .escolher-paginas .ep-faixa-linha { display: flex; gap: 8px; max-width: 360px; }
+.ps .escolher-paginas .ep-faixa-linha .ps-control { flex: 1; min-height: var(--size-control-md); }
+.ps .escolher-paginas .ep-faixa-linha .ps-control input { padding: 8px 0; }
+.ps .grade-paginas {
+  list-style: none; margin: 0; padding: 4px; display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  max-height: 312px; overflow-y: auto; overscroll-behavior: contain;
+}
+.ps .pagina-pdf {
+  position: relative; display: block; aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden; cursor: pointer;
+  border: 1px solid var(--Border-card); background: var(--Softblue); transition: box-shadow .15s ease, opacity .15s ease;
+}
+.ps .pagina-pdf img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ps .pagina-pdf:hover { box-shadow: 0 0 0 2px var(--Border-input-hover, #9cb3d6); }
+.ps .pagina-pdf.is-marcada { border-color: transparent; box-shadow: 0 0 0 3px var(--Link); }
+.ps .pagina-pdf:has(input:focus-visible) { outline: 3px solid var(--Focus); outline-offset: 3px; }
+.ps .pagina-pdf.is-bloqueada { cursor: not-allowed; opacity: .5; }
+.ps .pagina-pdf.is-bloqueada:hover { box-shadow: none; }
+/* caixa de marcar no canto */
+.ps .pagina-pdf .marca {
+  position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, .94); border: 2px solid #5b6f8f; color: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
+}
+.ps .pagina-pdf.is-marcada .marca { background: var(--Link); border-color: var(--Link); }
+.ps .pagina-pdf .marca svg { width: 14px; height: 14px; stroke-width: 3; }
+.ps .pagina-pdf .num {
+  position: absolute; left: 6px; bottom: 6px; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 10px;
+  background: rgba(11, 61, 114, .88); color: #fff; font: 700 11px/20px var(--font-sans); text-align: center;
+}
+html[data-theme="dark"] .ps .pagina-pdf.is-marcada .marca { color: #0b1a30; }
+/* botão de ampliar: canto inferior direito, oposto ao número da página */
+/* (também nas miniaturas das páginas para ler) */
+.ps .grade-paginas > li { position: relative; }
+.ps .grade-paginas .ampliar, .ps .miniatura .ampliar {
+  position: absolute; right: 10px; bottom: 10px; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  background: rgba(11, 61, 114, .88); color: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
+  transition: background .15s ease, transform .15s ease;
+}
+.ps .miniatura .ampliar { right: 6px; bottom: 8px; width: 26px; height: 26px; }
+.ps .grade-paginas .ampliar svg, .ps .miniatura .ampliar svg { width: 16px; height: 16px; }
+.ps .grade-paginas .ampliar:hover, .ps .miniatura .ampliar:hover { background: var(--Action, #1f5fbf); transform: scale(1.08); }
+.ps .grade-paginas .ampliar:focus-visible, .ps .miniatura .ampliar:focus-visible { outline: 3px solid var(--Focus); outline-offset: 2px; }
+
+/* ---------- Página do PDF ampliada (por cima da janela de escanear) ---------- */
+.ps .ver-pagina {
+  position: fixed; inset: 0; z-index: 450; display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+  background: rgba(4, 12, 26, .82); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  animation: vp-entra .2s ease-out both;
+}
+@keyframes vp-entra { from { opacity: 0; } }
+/* o foco inicial fica na própria visualização (para o Enter marcar): sem contorno */
+.ps .ver-pagina:focus { outline: none; }
+.ps .ver-pagina .vp-barra { display: flex; align-items: center; gap: 10px; width: min(920px, 100%); color: #fff; }
+.ps .ver-pagina .vp-titulo { flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; font: 400 13px/1.35 var(--font-sans); color: rgba(255, 255, 255, .72); }
+.ps .ver-pagina .vp-titulo strong { font: 700 16px/1.3 var(--font-sans); color: #fff; }
+.ps .ver-pagina .vp-titulo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* área da página: com zoom, rola nos dois sentidos (e a página é arrastada);
+   o margin:auto centraliza sem cortar o começo quando a página passa da área */
+.ps .ver-pagina .vp-folha {
+  position: relative; flex: 1 1 auto; min-height: 0; width: 100%;
+  display: flex; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.ps .ver-pagina .vp-folha.is-zoom { overflow: auto; overscroll-behavior: contain; cursor: grab; }
+.ps .ver-pagina .vp-folha.is-zoom:active { cursor: grabbing; }
+.ps .ver-pagina .vp-folha img {
+  display: block; flex: none; margin: auto; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; background: #fff;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .5); animation: vp-folha .24s cubic-bezier(.16, 1, .3, 1) both;
+  cursor: zoom-in; -webkit-user-drag: none;
+}
+.ps .ver-pagina .vp-folha img.is-medida { max-width: none; max-height: none; }
+.ps .ver-pagina .vp-folha.is-zoom img { cursor: inherit; }
+@keyframes vp-folha { from { transform: scale(.96); opacity: .4; } }
+/* enquanto a versão nítida não chega, a miniatura aparece ampliada e levemente desfocada */
+.ps .ver-pagina .vp-folha.is-carregando img { filter: blur(1.5px); }
+.ps .ver-pagina .vp-status {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); pointer-events: none;
+  padding: 6px 12px; border-radius: 999px; background: rgba(4, 12, 26, .8); color: #fff; font: 600 13px var(--font-sans); white-space: nowrap;
+}
+/* zoom: − 100% + */
+.ps .ver-pagina .vp-zoom { display: flex; align-items: center; gap: 4px; flex: none; }
+.ps .ver-pagina .vp-btn.vp-pct { min-width: 64px; padding: 0 8px; font-variant-numeric: tabular-nums; }
+/* atalhos */
+.ps .ver-pagina .vp-dica { margin: 0; width: min(920px, 100%); text-align: center; font: 400 12px/1.6 var(--font-sans); color: rgba(255, 255, 255, .62); }
+.ps .ver-pagina kbd {
+  display: inline-block; min-width: 20px; padding: 0 5px; border-radius: 5px; border: 1px solid rgba(255, 255, 255, .3);
+  background: rgba(255, 255, 255, .08); color: #fff; font: 600 11px/18px var(--font-sans); text-align: center;
+}
+.ps .ver-pagina .vp-acoes { justify-content: space-between; }
+.ps .ver-pagina .vp-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 42px; padding: 0 16px;
+  border-radius: 10px; border: 1px solid rgba(255, 255, 255, .28); background: rgba(255, 255, 255, .08);
+  color: #fff; font: 600 14px var(--font-sans); cursor: pointer; transition: background .15s ease, border-color .15s ease;
+}
+.ps .ver-pagina .vp-btn svg { width: 18px; height: 18px; }
+.ps .ver-pagina .vp-btn:hover:not(:disabled) { background: rgba(255, 255, 255, .16); border-color: rgba(255, 255, 255, .45); }
+.ps .ver-pagina .vp-btn:focus-visible { outline: 3px solid var(--Focus); outline-offset: 2px; }
+.ps .ver-pagina .vp-btn:disabled { opacity: .4; cursor: default; }
+.ps .ver-pagina .vp-btn.icone { width: 42px; padding: 0; flex: none; }
+.ps .ver-pagina .vp-btn.marcar.is-on { background: #2f6fd6; border-color: #2f6fd6; }
+.ps .ver-pagina .vp-btn.marcar.is-on:hover { background: #2760bd; border-color: #2760bd; }
+@media (max-width: 560px) {
+  .ps .ver-pagina { padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); }
+  .ps .ver-pagina .vp-rotulo, .ps .ver-pagina .vp-dica { display: none; }
+  .ps .ver-pagina .vp-btn.vp-pct { min-width: 54px; }
+  .ps .ver-pagina .vp-zoom .vp-btn.icone, .ps .ver-pagina .vp-barra > .vp-btn.icone { width: 38px; height: 38px; }
+  .ps .ver-pagina .vp-acoes .vp-btn:not(.marcar) { width: 42px; padding: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .ps .ver-pagina, .ps .ver-pagina .vp-folha img { animation: none; } }
+html.a11y-movimento .ps .ver-pagina, html.a11y-movimento .ps .ver-pagina .vp-folha img { animation: none; }
+html.a11y-contraste .ps .pagina-pdf.is-marcada { outline: 3px solid #00e5ff !important; outline-offset: 2px; }
+html.a11y-contraste .ps .pagina-pdf .marca { border: 2px solid #ffeb3b !important; }
+html.a11y-movimento .ps .mini-carregando { animation: none; }
+@media (prefers-reduced-motion: reduce) { .ps .mini-carregando { animation: none; } }
 
 /* sem animação (menu de acessibilidade ou preferência do sistema): gradiente parado */
 html.a11y-movimento .ps .btn-escanear, html.a11y-movimento .ps .btn-escanear::before,
@@ -514,6 +675,34 @@ html[data-theme="dark"] .ps .ps-scrim.vidro .ps-modal:has(> .body) > footer { ba
 @media (max-width: 560px) {
   .ps .ps-modal:has(> footer) > .body { padding-bottom: calc(var(--rodape-h, 120px) + 18px); }
 }
+/* Janela do OCR: rodapé de vidro bem fosco: as miniaturas e textos que passam
+   por trás viram manchas de cor (como o desfoque do iOS), com o tom azulado
+   translúcido.
+   O vidro fica num ::before que começa 56px ACIMA do rodapé e entra por uma
+   máscara em degradê. Com o desfoque direto no rodapé, a borda de cima do
+   filtro (o navegador espelha a imagem na borda) deixava uma faixa quase
+   nítida no topo; assim a borda do filtro fica invisível e o desfoque cresce
+   aos poucos. O corpo ganha o mesmo respiro extra para o fim do conteúdo
+   não ficar sob o degradê. */
+.ps .ps-scrim.vidro .ps-modal.janela-escanear:has(> .body) > footer {
+  background: transparent; border-top: 0; box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.ps .ps-scrim.vidro .ps-modal.janela-escanear:has(> .body) > footer::before {
+  content: ""; position: absolute; inset: -56px 0 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, transparent 0, color-mix(in srgb, var(--White) 22%, transparent) 56px, color-mix(in srgb, var(--White) 40%, transparent));
+  -webkit-backdrop-filter: blur(48px) saturate(180%) brightness(1.04);
+  backdrop-filter: blur(48px) saturate(180%) brightness(1.04);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 56px);
+  mask-image: linear-gradient(180deg, transparent 0, #000 56px);
+}
+html[data-theme="dark"] .ps .ps-scrim.vidro .ps-modal.janela-escanear:has(> .body) > footer::before {
+  background: linear-gradient(180deg, transparent 0, rgba(40, 58, 90, .22) 56px, rgba(22, 36, 60, .42));
+  -webkit-backdrop-filter: blur(48px) saturate(160%) brightness(.92);
+  backdrop-filter: blur(48px) saturate(160%) brightness(.92);
+}
+html.a11y-contraste .ps .ps-modal.janela-escanear > footer::before { display: none; }
+.ps .ps-modal.janela-escanear:has(> footer) > .body { padding-bottom: calc(var(--rodape-h, 76px) + 56px); }
 /* alto contraste pinta tudo de preto sólido: o brilho cobriria a miniatura
    em leitura, então ela ganha só um contorno */
 html.a11y-contraste .ps .miniatura .brilho { display: none; }
@@ -588,3 +777,9 @@ html.a11y-contraste .ps .ps-search:focus-within { outline: 3px solid #fff !impor
 html[data-theme="dark"] .topo-movel-sino { color: var(--Ink); }
 .ps .lista-notificacoes > header .ps-seg { flex-shrink: 0; }
 .ps .lista-notificacoes > header .ps-seg button { white-space: nowrap; }
+
+/* ---------- Novo atendimento: e-mail do paciente escolhido no título da seção ---------- */
+.ps .pac-escolhido { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; color: var(--Text-muted); font: 500 14px/1.3 var(--font-sans); }
+.ps .pac-escolhido:empty { display: none; }
+.ps .pac-escolhido svg { flex: 0 0 auto; width: 16px; height: 16px; color: var(--Link); }
+.ps .pac-escolhido .pac-email { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
