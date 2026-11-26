@@ -1,6 +1,6 @@
 /**
- * PDFs no "Escanear com IA": cada página vira uma miniatura e é lida
- * separadamente. PDF gerado no computador já tem o texto (com posição) e não
+ * PDFs no "Escanear com IA": o usuário escolhe as páginas a ler (pela
+ * miniatura de cada uma) e cada página é lida separadamente. PDF gerado no computador já tem o texto (com posição) e não
  * precisa de OCR; PDF digitalizado (só imagem) é desenhado e vai para o OCR.
  *
  * O pdf.js é carregado só quando aparece um PDF (fica fora do pacote principal).
@@ -35,10 +35,21 @@ function abrir(arquivo: File): Promise<DocumentoPdf> {
   return doc;
 }
 
-/** Fecha os PDFs abertos (ao fechar a janela). */
+/** Miniaturas já geradas, por arquivo e página (endereços blob:). */
+const miniaturas = new Map<File, Map<number, Promise<string>>>();
+/** Uma miniatura por vez: com o PDF grande, rolar a lista não trava a tela. */
+let fila: Promise<unknown> = Promise.resolve();
+
+/**
+ * Fecha os PDFs abertos e solta as miniaturas (ao fechar a janela). As
+ * miniaturas saem só depois da animação de saída, que ainda mostra as <img>.
+ */
 export function fecharPdfs() {
   for (const doc of abertos.values()) void doc.then((d) => d.loadingTask.destroy()).catch(() => undefined);
   abertos.clear();
+  const soltar = [...miniaturas.values()].flatMap((m) => [...m.values()]);
+  miniaturas.clear();
+  setTimeout(() => soltar.forEach((u) => void u.then(URL.revokeObjectURL).catch(() => undefined)), 1000);
 }
 
 export async function contarPaginas(arquivo: File): Promise<number> {
@@ -61,12 +72,40 @@ export async function desenharPagina(arquivo: File, n: number, largura: number):
   return c;
 }
 
-/** Miniatura da página (endereço blob: para usar num <img>). */
-export async function miniaturaDaPagina(arquivo: File, n: number): Promise<string> {
+async function gerarMiniatura(arquivo: File, n: number): Promise<string> {
   const c = await desenharPagina(arquivo, n, 240);
   const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/png'));
   if (!blob) throw new Error('Não foi possível gerar a miniatura.');
   return URL.createObjectURL(blob);
+}
+
+/**
+ * Página em tamanho grande (para ver de perto qual é). Não fica guardada: quem
+ * pede solta o endereço blob: com URL.revokeObjectURL quando não precisar mais.
+ */
+export async function paginaAmpliada(arquivo: File, n: number, largura: number): Promise<string> {
+  const c = await desenharPagina(arquivo, n, largura);
+  const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/png'));
+  if (!blob) throw new Error('Não foi possível desenhar a página.');
+  return URL.createObjectURL(blob);
+}
+
+/**
+ * Miniatura da página (endereço blob: para usar num <img>). Gerada na primeira
+ * vez que é pedida e guardada até `fecharPdfs`.
+ */
+export function miniaturaDaPagina(arquivo: File, n: number): Promise<string> {
+  let doArquivo = miniaturas.get(arquivo);
+  if (!doArquivo) miniaturas.set(arquivo, (doArquivo = new Map()));
+  let url = doArquivo.get(n);
+  if (!url) {
+    url = fila.then(() => gerarMiniatura(arquivo, n));
+    fila = url.catch(() => undefined);
+    const mapa = doArquivo;
+    url.catch(() => mapa.delete(n));
+    doArquivo.set(n, url);
+  }
+  return url;
 }
 
 /**

@@ -425,9 +425,6 @@ export function FormularioEditor() {
                     />
                   </div>
                   {tentou && erros.nome && <MensagemErro id="tit-erro">{erros.nome}</MensagemErro>}
-                  <div className="ps-helper">
-                    Obrigatório.<span className="ps-counter">{nome.length}/50</span>
-                  </div>
                 </div>
                 <div className="ps-field">
                   <label className="ps-label" htmlFor="dsc">
@@ -436,7 +433,9 @@ export function FormularioEditor() {
                   <div className="ps-control ps-textarea" style={{ alignItems: 'flex-start' }}>
                     <textarea id="dsc" maxLength={500} value={descricao} onChange={(e) => setDescricao(e.target.value)} />
                   </div>
-                  <div className="ps-helper">Até 500 caracteres. Nome, descrição e tipo podem mudar mesmo com respostas.</div>
+                  <div className="ps-helper">
+                    <span className="ps-counter">{descricao.length}/500</span>
+                  </div>
                 </div>
               </div>
             </section>

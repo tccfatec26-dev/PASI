@@ -27,6 +27,7 @@ type P = { lg?: boolean; style?: CSSProperties; className?: string };
 export const D = {
   voltar: 'M19 12H5M11 6l-6 6 6 6',
   mais: 'M12 5v14M5 12h14',
+  menos: 'M5 12h14',
   lapis: 'M4 20h4L20 8l-4-4L4 16z',
   lapisLinha: 'M4 20h4L19 9l-4-4L4 16zM13 7l4 4',
   seta: 'M5 12h14M13 6l6 6-6 6',
@@ -56,6 +57,8 @@ export const D = {
   lixeira: 'M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3',
   /** digitalizar (moldura de leitura com a linha do scanner) */
   importar: 'M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M7 12h10',
+  /** tela cheia (os quatro cantos) */
+  telaCheia: 'M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4',
 };
 
 export const IcVoltar = (p: P) => <Ic d={D.voltar} {...p} />;

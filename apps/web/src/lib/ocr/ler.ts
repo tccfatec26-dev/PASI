@@ -17,8 +17,8 @@ import { desenharPagina, ehPdf, textoDaPagina } from './pdf';
 
 export const TIPOS_ACEITOS = 'image/png,image/jpeg,image/webp,image/bmp,application/pdf';
 export const TAMANHO_MAXIMO = 20 * 1024 * 1024;
-/** Páginas por leitura (fotos ou páginas de PDF do mesmo formulário). */
-export const MAX_IMAGENS = 5;
+/** Páginas por leitura (fotos ou páginas de PDF escolhidas, do mesmo formulário). */
+export const MAX_IMAGENS = 10;
 
 /** Uma página a ler: uma foto, ou a página `pagina` (1, 2...) de um PDF. */
 export interface Fonte {
