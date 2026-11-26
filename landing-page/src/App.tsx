@@ -12,6 +12,7 @@ import Seguranca from "./components/Seguranca/Seguranca";
 import Solucao from "./components/Solucao/Solucao";
 import Contato from "./components/Contato/Contato";
 import Suporte from "./components/Suporte/Suporte";
+import Assistente from "./components/Assistente/Assistente";
 
 function App() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -74,6 +75,7 @@ function App() {
       </main>
 
       <Footer />
+      <Assistente />
     </>
   );
 }

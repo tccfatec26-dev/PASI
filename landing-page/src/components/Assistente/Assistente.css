@@ -1,0 +1,439 @@
+/* =========================================
+   ASSISTENTE DIGITAL
+   Botão flutuante no canto inferior esquerdo: o lado direito já tem o VLibras.
+========================================= */
+
+.assistente {
+  font-family: var(--font-sans);
+}
+
+/* ---------- botão flutuante ---------- */
+
+.assistente-botao {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 22px 0 12px;
+  border: none;
+  border-radius: 28px;
+  background: var(--Navy);
+  color: var(--White);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(23, 41, 68, 0.35);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.assistente-botao:hover { background: var(--Navy-700); transform: translateY(-2px); }
+.assistente-botao:focus-visible { outline-color: var(--Focus); outline-offset: 3px; }
+
+.assistente-botao-icone {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--Action);
+  font-size: 15px;
+}
+
+/* ---------- balão de convite ---------- */
+
+.assistente-aviso {
+  position: fixed;
+  left: 24px;
+  bottom: 92px;
+  z-index: 50;
+  width: 272px;
+  padding: 14px 40px 14px 16px;
+  border: 1px solid var(--Border-card);
+  border-radius: 16px 16px 16px 4px;
+  background: var(--White);
+  box-shadow: 0 14px 34px rgba(23, 41, 68, 0.18);
+  animation: assistente-entrar 0.25s ease-out;
+}
+
+.assistente-aviso-texto {
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--Navy);
+  cursor: pointer;
+}
+
+.assistente-aviso-fechar {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--Text-muted);
+  cursor: pointer;
+}
+
+/* ---------- painel ---------- */
+
+.assistente-painel {
+  position: fixed;
+  left: 24px;
+  bottom: 96px;
+  z-index: 55;
+  width: 392px;
+  height: min(640px, calc(100vh - 120px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--Border-card);
+  border-radius: 20px;
+  background: var(--White);
+  box-shadow: 0 24px 60px rgba(23, 41, 68, 0.28);
+  animation: assistente-entrar 0.22s ease-out;
+}
+
+.assistente-topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 10px 14px 18px;
+  background: var(--Navy);
+  color: var(--White);
+}
+
+.assistente-avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--Action);
+  font-size: 17px;
+}
+
+.assistente-topo-textos { flex: 1; min-width: 0; }
+.assistente-topo-textos p { font-size: 15px; font-weight: 700; }
+.assistente-topo-textos span { display: block; margin-top: 2px; font-size: 12px; color: var(--Info-on-dark); }
+
+.assistente-icone {
+  width: var(--size-touch-min);
+  height: var(--size-touch-min);
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--White);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.assistente-icone:hover { background: rgba(255, 255, 255, 0.1); }
+.assistente-icone:focus-visible { outline-color: var(--Focus-on-dark); }
+
+/* ---------- mensagens ---------- */
+
+.assistente-mensagens {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 16px;
+  background: var(--Background-page);
+}
+
+.assistente-grupo { display: flex; flex-direction: column; gap: 8px; }
+
+.assistente-balao {
+  max-width: 88%;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  /* o site esconde o caret no body; aqui o texto pode ser copiado normalmente */
+  user-select: text;
+}
+
+.assistente-balao-bot {
+  align-self: flex-start;
+  border: 1px solid var(--Border-card);
+  border-radius: 16px 16px 16px 4px;
+  background: var(--White);
+  color: var(--Navy);
+}
+
+.assistente-balao-bot p + p,
+.assistente-balao-bot p + ul,
+.assistente-balao-bot p + ol,
+.assistente-balao-bot ul + p,
+.assistente-balao-bot ol + p { margin-top: 8px; }
+
+.assistente-balao-bot ul,
+.assistente-balao-bot ol { padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+
+.assistente-balao-bot a { color: var(--Link); text-decoration: underline; }
+
+.assistente-balao-pessoa {
+  align-self: flex-end;
+  max-width: 82%;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--Action);
+  color: var(--White);
+}
+
+.assistente-fontes {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--Text-muted);
+}
+
+.assistente-mapa {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--size-touch-min);
+  padding: 0 16px;
+  border-radius: var(--radius-10);
+  background: var(--Action);
+  color: var(--White);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.assistente-mapa:hover { background: var(--Action-hover); }
+
+.assistente-opcoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+
+.assistente-opcoes button {
+  min-height: var(--size-touch-min);
+  padding: 8px 14px;
+  border: 1px solid #c9dbf7;
+  border-radius: 22px;
+  background: var(--White);
+  color: var(--Link);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.assistente-opcoes button:hover { background: var(--Softblue); border-color: var(--Blue); }
+
+/* ---------- cartão do serviço ---------- */
+
+.assistente-cartao {
+  --cor: var(--Action);
+  --tinta: var(--Link);
+  --fundo: var(--Softblue);
+  overflow: hidden;
+  border: 1px solid var(--Border-card);
+  border-radius: 16px;
+  background: var(--White);
+}
+
+.assistente-cartao-creas { --cor: #c2410c; --tinta: #9a3412; --fundo: #fff1e8; }
+.assistente-cartao-caps { --cor: var(--Success); --tinta: #1f5c38; --fundo: #e7f4ec; }
+
+.assistente-cartao-topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--fundo);
+}
+
+.assistente-cartao-icone {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cor);
+  color: var(--White);
+  font-size: 16px;
+}
+
+.assistente-cartao-sigla { font-size: 16px; font-weight: 800; color: var(--tinta); }
+.assistente-cartao-nome { margin-top: 1px; font-size: 11px; font-weight: 600; color: var(--Navy); }
+
+.assistente-cartao-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--Text-muted);
+}
+
+.assistente-cartao-rotulo {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--Navy);
+}
+
+.assistente-cartao-corpo ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+
+.assistente-cartao-corpo li {
+  display: flex;
+  gap: 8px;
+  color: var(--Navy);
+}
+
+.assistente-cartao-corpo li i { margin-top: 4px; font-size: 11px; color: var(--cor); }
+
+.assistente-alerta {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid #ffd9a8;
+  border-radius: 12px;
+  background: #fff4e5;
+  font-size: 12px;
+  color: #5c3a00;
+}
+
+.assistente-alerta i { margin-top: 2px; }
+
+/* ---------- digitando ---------- */
+
+.assistente-pensando {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 88%;
+  padding: 12px 14px;
+  border: 1px solid var(--Border-card);
+  border-radius: 16px 16px 16px 4px;
+  background: var(--White);
+}
+
+.assistente-pensando-texto { font-size: 12px; line-height: 1.4; color: var(--Text-muted); }
+
+.assistente-pontos { display: flex; gap: 5px; }
+
+.assistente-pontos span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--Blue);
+  animation: assistente-ponto 1.2s infinite ease-in-out;
+}
+
+.assistente-pontos span:nth-child(2) { animation-delay: 0.15s; }
+.assistente-pontos span:nth-child(3) { animation-delay: 0.3s; }
+
+/* ---------- campo de texto ---------- */
+
+.assistente-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 12px 10px;
+  border-top: 1px solid var(--Border-card);
+  background: var(--White);
+}
+
+.assistente-form-linha { display: flex; gap: 8px; align-items: center; }
+
+.assistente-form input {
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--Border-control);
+  border-radius: 12px;
+  background: var(--Background);
+  color: var(--Navy);
+  font: inherit;
+  font-size: 15px;
+  /* o body esconde o caret; no campo de digitação ele precisa aparecer */
+  caret-color: auto;
+  cursor: text;
+}
+
+.assistente-form input:focus-visible { outline: 2px solid var(--Focus); outline-offset: 0; }
+
+.assistente-enviar {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 12px;
+  background: var(--Action);
+  color: var(--White);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.assistente-enviar:hover:not(:disabled) { background: var(--Action-hover); }
+.assistente-enviar:disabled { background: var(--Disabled-bg); color: var(--Text-muted); cursor: not-allowed; }
+
+.assistente-privacidade {
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--Text-muted);
+}
+
+/* ---------- animações ---------- */
+
+@keyframes assistente-entrar {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes assistente-ponto {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* ---------- celular ---------- */
+
+@media (max-width: 550px) {
+  .assistente-botao { left: 16px; bottom: 16px; padding: 0 11px; }
+  .assistente-botao-rotulo { display: none; }
+
+  .assistente-aviso { display: none; }
+
+  .assistente-painel {
+    left: 8px;
+    right: 8px;
+    bottom: 84px;
+    width: auto;
+    height: calc(100dvh - 100px);
+  }
+
+  /* 16px evita o zoom automático do iOS ao focar o campo */
+  .assistente-form input { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistente-painel,
+  .assistente-aviso,
+  .assistente-pontos span { animation: none; }
+  .assistente-botao { transition: none; }
+}
