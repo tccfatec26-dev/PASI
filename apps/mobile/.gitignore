@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Chave da conta de serviço do Firebase (FCM V1): vai só para o Expo (eas credentials), nunca para o repositório
+*firebase-adminsdk*.json
