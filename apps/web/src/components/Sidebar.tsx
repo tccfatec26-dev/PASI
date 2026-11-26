@@ -63,7 +63,6 @@ export function Sidebar({ aoEsconder, rotuloFechar }: { aoEsconder?: () => void;
               <IcFormulario lg />
               Formulários
             </NavLink>
-            <ItemMenuNotificacoes className={cls} />
           </>
         ) : (
           <>
@@ -94,6 +93,8 @@ export function Sidebar({ aoEsconder, rotuloFechar }: { aoEsconder?: () => void;
             )}
           </NavLink>
         )}
+        {/* sempre o último item do menu */}
+        {!bloqueado && <ItemMenuNotificacoes className={cls} />}
       </nav>
       <SeletorTema />
       <div className="user-bloco">
