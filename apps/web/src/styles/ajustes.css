@@ -777,6 +777,17 @@ html.a11y-contraste .ps .ps-search:focus-within { outline: 3px solid #fff !impor
 html[data-theme="dark"] .topo-movel-sino { color: var(--Ink); }
 .ps .lista-notificacoes > header .ps-seg { flex-shrink: 0; }
 .ps .lista-notificacoes > header .ps-seg button { white-space: nowrap; }
+/* o fundo do último item (não lida ou com o mouse em cima) acompanha a
+   borda arredondada do painel, em vez de deixar a ponta quadrada para fora */
+.ps .lista-notificacoes > .notif-lista:last-child > .ps-notif:last-child {
+  border-radius: 0 0 calc(var(--radius-18) - 1px) calc(var(--radius-18) - 1px);
+}
+/* carregando: a lista atual esmaece até a nova chegar; o item sendo marcado fica em espera */
+.ps .notif-lista { transition: opacity .2s ease; }
+.ps .notif-lista.is-atualizando { opacity: .55; pointer-events: none; }
+.ps .notif-lista .ps-notif.is-ocupada .notif-abrir { cursor: progress; }
+.ps .notif-ler .giro { color: var(--Link); }
+.ps .lista-notificacoes > .busca-barra { margin-top: 0; }
 
 /* ---------- Novo atendimento: e-mail do paciente escolhido no título da seção ---------- */
 .ps .pac-escolhido { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; color: var(--Text-muted); font: 500 14px/1.3 var(--font-sans); }

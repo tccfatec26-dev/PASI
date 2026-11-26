@@ -130,6 +130,28 @@ a:hover { color: #174ea8; }
 }
 .avisos .aviso.error { --tom: var(--Error); --tom-bg: var(--Error-bg); }
 .avisos .aviso.info { --tom: var(--Link); --tom-bg: var(--Softblue); }
+/* Em destaque sobre a página (claro e escuro): fundo quase opaco no tom do
+   aviso, faixa colorida à esquerda, borda no tom e sombra mais funda, com um
+   halo leve na cor do aviso. */
+.avisos .aviso {
+  background: color-mix(in srgb, var(--tom) 6%, color-mix(in srgb, var(--tom-bg) 94%, transparent));
+  border-color: color-mix(in srgb, var(--tom) 32%, transparent);
+  box-shadow:
+    inset 4px 0 0 var(--tom),
+    0 18px 40px rgba(23, 41, 68, .22),
+    0 4px 12px rgba(23, 41, 68, .12),
+    0 0 0 4px color-mix(in srgb, var(--tom) 7%, transparent);
+}
+/* escuro: superfície mais clara que a página e os painéis, puxada para o tom do aviso */
+html[data-theme="dark"] .avisos .aviso {
+  background: color-mix(in srgb, var(--tom) 16%, var(--Surface-3));
+  border-color: color-mix(in srgb, var(--tom) 48%, transparent);
+  box-shadow:
+    inset 4px 0 0 var(--tom),
+    0 22px 50px rgba(0, 0, 0, .6),
+    0 4px 14px rgba(0, 0, 0, .4),
+    0 0 30px color-mix(in srgb, var(--tom) 20%, transparent);
+}
 .avisos .aviso.saindo { animation: aviso-sai .32s cubic-bezier(.4, 0, .7, .2) forwards; }
 .avisos .aviso-ico { display: inline-flex; align-self: center; color: var(--tom); flex-shrink: 0; }
 .ps.avisos .aviso-ico svg.ic { width: 30px; height: 30px; stroke-width: 1.9; }
