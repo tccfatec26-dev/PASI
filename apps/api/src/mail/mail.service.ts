@@ -117,6 +117,74 @@ export class MailService {
     });
   }
 
+  /**
+   * Paciente incluído em um atendimento. O paciente usa o app (não o painel),
+   * então o e-mail não traz link: só avisa e orienta a abrir o aplicativo.
+   */
+  enviarIncluidoAtendimento(
+    para: string,
+    nome: string,
+    dados: { protocolo: string; profissional: string; formularios: number },
+  ) {
+    const primeiroNome = nome.split(' ')[0];
+    const forms =
+      dados.formularios > 0
+        ? `Há ${dados.formularios === 1 ? '1 formulário' : `${dados.formularios} formulários`} para você responder.`
+        : '';
+    return this.enviar({
+      para,
+      nome,
+      assunto: `PASI — você foi incluído no atendimento ${dados.protocolo}`,
+      texto:
+        `Olá, ${primeiroNome}!\n\n` +
+        `${dados.profissional} incluiu você no atendimento ${dados.protocolo}.\n` +
+        (forms ? `${forms}\n` : '') +
+        `\nAbra o aplicativo PASI para ver o atendimento${forms ? ' e responder' : ''}.\n\n` +
+        `Se você não reconhece este atendimento, procure a unidade que o atende.`,
+      html: this.layout(
+        `Olá, ${this.esc(primeiroNome)}!`,
+        `<p><strong>${this.esc(dados.profissional)}</strong> incluiu você no atendimento <strong>${this.esc(dados.protocolo)}</strong>.</p>
+         ${forms ? `<p>${this.esc(forms)}</p>` : ''}
+         <p>Abra o aplicativo <strong>PASI</strong> para ver o atendimento${forms ? ' e responder' : ''}.</p>
+         <p style="color:#5b6b82;font-size:13px">Se você não reconhece este atendimento, procure a unidade que o atende.</p>`,
+      ),
+    });
+  }
+
+  /** Profissional que criou o atendimento: o paciente concluiu um formulário. */
+  enviarFormularioRespondido(
+    para: string,
+    nome: string,
+    dados: {
+      paciente: string;
+      formulario: string;
+      protocolo: string;
+      todos: boolean;
+      idAtendimento: number;
+      idFormulario: number;
+    },
+  ) {
+    const link = `${this.urlPainel()}/atendimentos/${dados.idAtendimento}/formularios/${dados.idFormulario}`;
+    const primeiroNome = nome.split(' ')[0];
+    const todos = dados.todos ? 'Todos os formulários do atendimento foram respondidos.' : '';
+    return this.enviar({
+      para,
+      nome,
+      assunto: `PASI — ${dados.paciente} respondeu um formulário (${dados.protocolo})`,
+      texto:
+        `Olá, ${primeiroNome}!\n\n` +
+        `${dados.paciente} respondeu “${dados.formulario}” no atendimento ${dados.protocolo}.\n` +
+        (todos ? `${todos}\n` : '') +
+        `\nVer as respostas: ${link}`,
+      html: this.layout(
+        `Olá, ${this.esc(primeiroNome)}!`,
+        `<p><strong>${this.esc(dados.paciente)}</strong> respondeu <strong>“${this.esc(dados.formulario)}”</strong> no atendimento <strong>${this.esc(dados.protocolo)}</strong>.</p>
+         ${todos ? `<p>${this.esc(todos)}</p>` : ''}`,
+        { texto: 'Ver as respostas', url: link },
+      ),
+    });
+  }
+
   private urlPainel(): string {
     const url = this.config.get<string>('WEB_URL') ?? this.config.get<string>('APP_URL') ?? 'http://localhost:5173';
     return url.replace(/\/+$/, '');
@@ -134,13 +202,13 @@ export class MailService {
     return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
   }
 
-  private layout(titulo: string, corpo: string, botao: { texto: string; url: string }): string {
+  private layout(titulo: string, corpo: string, botao?: { texto: string; url: string }): string {
     return `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#f8faff;font-family:Montserrat,Arial,sans-serif;color:#172944">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:18px;padding:32px;box-shadow:0 6px 24px rgba(16,39,70,.08)">
 <tr><td style="font:700 22px/1.3 Montserrat,Arial,sans-serif;color:#172944;padding-bottom:12px">${titulo}</td></tr>
 <tr><td style="font:400 15px/1.6 Montserrat,Arial,sans-serif;color:#33445c">${corpo}</td></tr>
-<tr><td style="padding-top:20px"><a href="${this.esc(botao.url)}" style="display:inline-block;background:#2f70df;color:#ffffff;text-decoration:none;font:600 15px/1 Montserrat,Arial,sans-serif;padding:14px 22px;border-radius:12px">${this.esc(botao.texto)}</a></td></tr>
+${botao ? `<tr><td style="padding-top:20px"><a href="${this.esc(botao.url)}" style="display:inline-block;background:#2f70df;color:#ffffff;text-decoration:none;font:600 15px/1 Montserrat,Arial,sans-serif;padding:14px 22px;border-radius:12px">${this.esc(botao.texto)}</a></td></tr>` : ''}
 <tr><td style="padding-top:24px;font:400 12px/1.5 Montserrat,Arial,sans-serif;color:#7a889c">PASI — Plataforma de Atendimento de Sistemas Integrados</td></tr>
 </table></td></tr></table></body></html>`;
   }

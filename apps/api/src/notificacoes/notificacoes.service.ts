@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { SituacaoAtendimento, TipoNotificacao } from '../common/constants';
 import type { AuthUser } from '../auth/current-user.decorator';
 import { QueryNotificacaoDto } from './dto/query-notificacao.dto';
@@ -39,12 +40,20 @@ const CAMPOS = {
  *
  * Gravar um aviso nunca derruba a ação que o causou: se falhar (ex.: a tabela
  * ainda não foi criada no banco), o erro vai só para o log.
+ *
+ * E-mail: além do sino, vão por e-mail (Brevo, ver MailService) o aviso ao
+ * paciente incluído em um atendimento e o aviso ao profissional de formulário
+ * respondido. O envio não espera o Brevo (a resposta da ação sai na hora) e
+ * uma falha fica só no log.
  */
 @Injectable()
 export class NotificacoesService {
   private readonly logger = new Logger(NotificacoesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+  ) {}
 
   // ----------------------------------------------------------------
   // Leitura (o próprio usuário)
@@ -118,10 +127,11 @@ export class NotificacoesService {
       if (!a) return;
       const nomeAutor = await this.nomeDe(autor.id_usuario);
       const n = a._count.atendimento_formulario;
+      const prot = protocolo(idAtendimento, a.dt_cadastro);
       const mensagem =
-        `${nomeAutor} incluiu você no atendimento ${protocolo(idAtendimento, a.dt_cadastro)}.` +
+        `${nomeAutor} incluiu você no atendimento ${prot}.` +
         (n > 0 ? ` Você tem ${plural(n, 'formulário', 'formulários')} para responder.` : '');
-      await this.gravar({
+      const gravou = await this.gravar({
         id_usuario: a.id_usuario_paciente,
         id_tipo_notificacao: TipoNotificacao.INCLUIDO_ATENDIMENTO,
         titulo: 'Novo atendimento',
@@ -129,6 +139,11 @@ export class NotificacoesService {
         id_atendimento: idAtendimento,
         id_usuario_origem: autor.id_usuario,
       });
+      if (gravou) {
+        this.emailSemEsperar('paciente incluído', a.id_usuario_paciente, (u) =>
+          this.mail.enviarIncluidoAtendimento(u.email, u.nome, { protocolo: prot, profissional: nomeAutor, formularios: n }),
+        );
+      }
     });
   }
 
@@ -200,14 +215,16 @@ export class NotificacoesService {
       // atendimento antigo, sem quem criou: não há a quem avisar
       if (!a?.id_usuario_cad) return;
       const todos = a.id_situacao_atendimento === SituacaoAtendimento.RESPONDIDO;
+      const prot = protocolo(idAtendimento, a.dt_cadastro);
+      const nomeFormulario = formulario?.nome ?? 'formulário';
       const mensagem = limitar(
-        `${nomePaciente} respondeu “${formulario?.nome ?? 'formulário'}” no atendimento ` +
-          `${protocolo(idAtendimento, a.dt_cadastro)}.` +
+        `${nomePaciente} respondeu “${nomeFormulario}” no atendimento ${prot}.` +
           (todos ? ' Todos os formulários do atendimento foram respondidos.' : ''),
         300,
       );
-      await this.gravar({
-        id_usuario: a.id_usuario_cad,
+      const idProfissional = a.id_usuario_cad;
+      const gravou = await this.gravar({
+        id_usuario: idProfissional,
         id_tipo_notificacao: TipoNotificacao.FORMULARIO_RESPONDIDO,
         titulo: 'Formulário respondido',
         mensagem,
@@ -215,6 +232,18 @@ export class NotificacoesService {
         id_formulario: idFormulario,
         id_usuario_origem: paciente.id_usuario,
       });
+      if (gravou) {
+        this.emailSemEsperar('formulário respondido', idProfissional, (u) =>
+          this.mail.enviarFormularioRespondido(u.email, u.nome, {
+            paciente: nomePaciente,
+            formulario: nomeFormulario,
+            protocolo: prot,
+            todos,
+            idAtendimento,
+            idFormulario,
+          }),
+        );
+      }
     });
   }
 
@@ -231,10 +260,33 @@ export class NotificacoesService {
     id_usuario_origem: number;
   }) {
     // ninguém é avisado da própria ação
-    if (dados.id_usuario === dados.id_usuario_origem) return;
+    if (dados.id_usuario === dados.id_usuario_origem) return false;
     await this.prisma.notificacao.create({
       data: { ...dados, titulo: limitar(dados.titulo, 100), mensagem: limitar(dados.mensagem, 300) },
     });
+    return true;
+  }
+
+  /**
+   * Manda o e-mail do aviso sem segurar a resposta da ação (o Brevo pode levar
+   * alguns segundos). Busca o e-mail do destinatário; sem e-mail, não envia.
+   */
+  private emailSemEsperar(
+    oque: string,
+    idUsuario: number,
+    enviar: (u: { email: string; nome: string }) => Promise<boolean>,
+  ) {
+    void (async () => {
+      const u = await this.prisma.usuario.findUnique({
+        where: { id_usuario: idUsuario },
+        select: { email: true, nome: true },
+      });
+      if (!u?.email) return;
+      const ok = await enviar({ email: u.email, nome: u.nome ?? '' });
+      if (!ok) this.logger.warn(`E-mail do aviso (${oque}) não enviado ao usuário ${idUsuario}.`);
+    })().catch((e: unknown) =>
+      this.logger.error(`Falha no e-mail do aviso (${oque})`, e instanceof Error ? e.stack : e),
+    );
   }
 
   private async nomeDe(idUsuario: number) {
