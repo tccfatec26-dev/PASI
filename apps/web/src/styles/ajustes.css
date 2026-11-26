@@ -709,6 +709,75 @@ html.a11y-contraste .ps .miniatura .brilho { display: none; }
 html.a11y-contraste .ps .miniatura.is-lendo { outline: 3px solid #00e5ff; outline-offset: 2px; }
 .ps .ocr-ignoradas p { margin: 8px 0 0; font-size: 13px; color: var(--Text-muted); }
 
+/* ===================== Campos: seleção e foco ===================== */
+
+/* Lista de seleção: o <select> ocupa o campo inteiro, então clicar na seta
+   também abre a lista (antes só o meio do campo abria). A seta fica por cima,
+   sem receber o clique. */
+.ps .ps-control.ps-select { cursor: pointer; }
+.ps .ps-control.ps-select > select {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  padding: 0 44px 0 14px; cursor: pointer; border-radius: inherit;
+}
+.ps .ps-control.ps-select > svg { margin-left: auto; pointer-events: none; position: relative; }
+.ps .ps-control.ps-select.is-disabled, .ps .ps-control.ps-select > select:disabled { cursor: not-allowed; }
+
+/* Foco nos campos: sem o contorno quadrado do navegador no texto de dentro.
+   O foco continua visível (RF03) na borda arredondada do próprio campo, que
+   já fica azul com um halo (.ps-control:focus-within). */
+.ps .ps-control :is(input, select, textarea):focus-visible,
+.ps .ps-search input:focus-visible { outline: none; }
+/* alto contraste: o contorno branco passa para a borda arredondada do campo */
+html.a11y-contraste .ps .ps-control :is(input, select, textarea):focus-visible,
+html.a11y-contraste .ps .ps-search input:focus-visible { outline: none !important; }
+html.a11y-contraste .ps .ps-control:focus-within,
+html.a11y-contraste .ps .ps-search:focus-within { outline: 3px solid #fff !important; outline-offset: 2px; }
+
+/* Textos longos digitados pelo usuário (observação da avaliação, respostas):
+   quebram dentro do espaço do painel, mesmo sem espaços entre as palavras. */
+.ps .texto-livre { overflow-wrap: anywhere; word-break: normal; white-space: pre-wrap; min-width: 0; }
+.ps .answer { overflow-wrap: anywhere; min-width: 0; }
+.ps .item .meta { min-width: 0; }
+/* rede de segurança: nenhuma palavra comprida estoura um painel */
+.ps .panel { overflow-wrap: break-word; }
+
+/* ===================== Notificações ===================== */
+.ps .lista-notificacoes > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.ps .notif-lista { list-style: none; margin: 0; padding: 0; }
+.ps .notif-lista .ps-notif { align-items: flex-start; padding: 0; background: transparent; transition: background-color .15s ease; }
+.ps .notif-lista .ps-notif:last-child { border-bottom: 0; }
+.ps .notif-lista .ps-notif.unread { background: var(--Softblue-2); }
+.ps .notif-lista .ps-notif.unread::after { right: 16px; top: 22px; }
+.ps .notif-lista .ps-notif:hover { background: color-mix(in srgb, var(--Link) 7%, transparent); }
+.ps .notif-lista .ps-notif .ni { margin: 14px 0 14px 16px; background: var(--Softblue); color: var(--Link); }
+.ps .notif-lista .ps-notif.unread .ni { background: var(--Action); color: #fff; }
+/* o texto inteiro é o botão que abre o atendimento */
+.ps .notif-abrir {
+  flex: 1; min-width: 0; display: block; text-align: left; padding: 14px 40px 14px 0;
+  background: none; border: 0; color: inherit; font: inherit; cursor: pointer; border-radius: 12px;
+}
+.ps .notif-abrir h5 { padding-right: 0; }
+.ps .notif-abrir p { overflow-wrap: anywhere; }
+.ps .notif-lista .ps-notif:not(.unread) h5 { font-weight: 600; color: var(--Ink); }
+.ps .notif-ler { align-self: center; margin-right: 34px; flex-shrink: 0; }
+.ps .notif-vazia { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 16px; text-align: center; color: var(--Text-muted); margin: 0; }
+.ps .notif-vazia .si { width: 64px; height: 64px; border-radius: 20px; display: flex; align-items: center; justify-content: center; }
+.ps .notif-vazia p { margin: 0; }
+
+/* sino da barra superior do celular */
+.topo-movel-sino {
+  position: relative; margin-left: auto; width: 40px; height: 40px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  color: var(--Navy-600); text-decoration: none;
+}
+.topo-movel-sino:hover, .topo-movel-sino.is-active { background: var(--Softblue); color: var(--Link); }
+.topo-movel-sino:focus-visible { outline: 3px solid var(--Focus); outline-offset: 2px; }
+.topo-movel-sino .ps-count { position: absolute; top: -2px; right: -4px; height: 18px; min-width: 18px; padding: 0 5px; font-size: 10px; line-height: 14px; border: 2px solid var(--m-fundo, var(--White)); }
+.topo-movel-sino + .topo-movel-avatar { margin-left: 0; }
+html[data-theme="dark"] .topo-movel-sino { color: var(--Ink); }
+.ps .lista-notificacoes > header .ps-seg { flex-shrink: 0; }
+.ps .lista-notificacoes > header .ps-seg button { white-space: nowrap; }
+
 /* ---------- Novo atendimento: e-mail do paciente escolhido no título da seção ---------- */
 .ps .pac-escolhido { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; color: var(--Text-muted); font: 500 14px/1.3 var(--font-sans); }
 .ps .pac-escolhido:empty { display: none; }

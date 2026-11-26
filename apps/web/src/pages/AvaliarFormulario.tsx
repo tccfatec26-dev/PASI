@@ -218,7 +218,7 @@ export function AvaliarFormulario() {
                   </PanelTitle>
                 </header>
                 <div className="pb">
-                  <p style={{ margin: 0, font: '400 15px/1.6 var(--font-sans)', color: 'var(--Ink)', whiteSpace: 'pre-wrap' }}>
+                  <p className="texto-livre" style={{ margin: 0, font: '400 15px/1.6 var(--font-sans)', color: 'var(--Ink)' }}>
                     {avaliacao?.observacao ?? '—'}
                   </p>
                 </div>
@@ -300,7 +300,7 @@ function RespostaVisual({ pergunta, respostas }: { pergunta: Pergunta; respostas
   if (t === TP.NUMERO || r.valor_numero !== null) return <div className="answer">{String(Number(r.valor_numero))}</div>;
   if (r.valor_data) return <div className="answer">{data(r.valor_data)}</div>;
   return (
-    <div className="answer" style={{ whiteSpace: 'pre-wrap' }}>
+    <div className="answer texto-livre">
       {r.valor_texto}
     </div>
   );

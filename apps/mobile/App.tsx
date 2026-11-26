@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DarkTheme, DefaultTheme, NavigationContainer, type Theme } from '@react-navigation/native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { FeedbackProvider } from './src/context/FeedbackContext';
+import { NotificacoesProvider } from './src/context/NotificacoesContext';
 import { AuthNavigator } from './src/navigation/AuthNavigator';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { navigationRef } from './src/navigation/navigationRef';
@@ -80,9 +81,11 @@ export default function App() {
       <AuthProvider>
         <Temado>
           <FeedbackProvider>
-            <Navegacao>
-              <RootNavigator />
-            </Navegacao>
+            <NotificacoesProvider>
+              <Navegacao>
+                <RootNavigator />
+              </Navegacao>
+            </NotificacoesProvider>
           </FeedbackProvider>
         </Temado>
       </AuthProvider>

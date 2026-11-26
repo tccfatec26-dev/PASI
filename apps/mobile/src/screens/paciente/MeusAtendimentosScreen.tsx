@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, FlatList, ActivityIndicator } from 'react-native';
 import { Text, TouchableOpacity } from '../../acessibilidade/Leitura';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +14,8 @@ import { RadioList } from '../../components/RadioList';
 import { atendimentosService, Atendimento } from '../../services/atendimentos';
 import { useAuth } from '../../context/AuthContext';
 import { useDrawer } from '../../context/DrawerContext';
+import { useNotificacoes } from '../../context/NotificacoesContext';
+import { BotaoNotificacoes } from '../../components/BotaoNotificacoes';
 import { usePaginatedList } from '../../hooks/usePaginatedList';
 import {
   SituacaoAtendimento,
@@ -80,6 +82,16 @@ export function MeusAtendimentosScreen() {
       }),
   });
 
+  // chegou notificação nova (ex.: novo atendimento): atualiza a lista
+  const { versao } = useNotificacoes();
+  const versaoVista = useRef(versao);
+  useEffect(() => {
+    if (versao === versaoVista.current) return;
+    versaoVista.current = versao;
+    lista.recarregar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [versao]);
+
   const temPendentes = lista.items.some((a) => pendentesCount(a) > 0);
 
   const renderCard = ({ item }: { item: Atendimento }) => {
@@ -132,7 +144,7 @@ export function MeusAtendimentosScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      <ScreenHeader title="Meus Atendimentos" subtitle={usuario?.nome} onMenu={openDrawer}>
+      <ScreenHeader title="Meus Atendimentos" subtitle={usuario?.nome} onMenu={openDrawer} right={<BotaoNotificacoes />}>
         <SearchBar
           value={lista.search}
           onChangeText={lista.setSearch}

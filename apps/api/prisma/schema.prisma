@@ -29,6 +29,7 @@ model atendimento {
   usuario_atendimento_id_usuario_cadTousuario      usuario?                 @relation("atendimento_id_usuario_cadTousuario", fields: [id_usuario_cad], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_atend_usuariocad")
   atendimento_formulario                           atendimento_formulario[]
   formulario_paciente                              formulario_paciente[]
+  notificacao                                      notificacao[]
 
   @@index([id_unidade_atendimento], map: "ix_atend_unidade")
 }
@@ -71,6 +72,7 @@ model formulario {
   formulario_avaliacao   formulario_avaliacao[]
   formulario_paciente    formulario_paciente[]
   pergunta               pergunta[]
+  notificacao            notificacao[]
 }
 
 model formulario_avaliacao {
@@ -342,4 +344,37 @@ model usuario {
   usuario_unidade                                                         usuario_unidade[]        @relation("usuario_unidade_usuario")
   usuario_unidade_vinculos                                                usuario_unidade[]        @relation("usuario_unidade_vinculo")
   log_adm_geral_alvo                                                      log_adm_geral[]          @relation("log_adm_geral_alvo")
+  notificacao                                                             notificacao[]            @relation("notificacao_destino")
+  notificacao_origem                                                      notificacao[]            @relation("notificacao_origem")
+}
+
+/// Tipos de notificação (ids fixos: 1 incluído em atendimento, 2 novos
+/// formulários, 3 formulário respondido). Script 2026-11-25_notificacoes.sql.
+model tipo_notificacao {
+  id_tipo_notificacao Int           @id(map: "pk_tipo_notificacao") @db.SmallInt
+  nome                String        @db.VarChar(40)
+  descricao           String?       @db.VarChar(300)
+  notificacao         notificacao[]
+}
+
+/// Avisos do sino (painel e app), um por destinatário.
+model notificacao {
+  id_notificacao      Int              @id(map: "pk_notificacao") @default(autoincrement())
+  id_usuario          Int
+  id_tipo_notificacao Int              @db.SmallInt
+  titulo              String           @db.VarChar(100)
+  mensagem            String           @db.VarChar(300)
+  id_atendimento      Int?
+  id_formulario       Int?
+  id_usuario_origem   Int?
+  lida                Boolean          @default(false)
+  dt_leitura          DateTime?        @db.Timestamp(6)
+  dt_cadastro         DateTime         @default(now()) @db.Timestamp(6)
+  usuario             usuario          @relation("notificacao_destino", fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_notif_usuario")
+  tipo_notificacao    tipo_notificacao @relation(fields: [id_tipo_notificacao], references: [id_tipo_notificacao], onDelete: NoAction, onUpdate: NoAction, map: "fk_notif_tipo")
+  atendimento         atendimento?     @relation(fields: [id_atendimento], references: [id_atendimento], onDelete: NoAction, onUpdate: NoAction, map: "fk_notif_atendimento")
+  formulario          formulario?      @relation(fields: [id_formulario], references: [id_formulario], onDelete: NoAction, onUpdate: NoAction, map: "fk_notif_formulario")
+  usuario_origem      usuario?         @relation("notificacao_origem", fields: [id_usuario_origem], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_notif_origem")
+
+  @@index([id_usuario, id_notificacao(sort: Desc)], map: "ix_notif_usuario")
 }

@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SituacaoAtendimento, TipoUsuario } from '../common/constants';
 import { AcessoService } from '../acesso/acesso.service';
+import { NotificacoesService } from '../notificacoes/notificacoes.service';
 import type { AuthUser } from '../auth/current-user.decorator';
 import { recalcularSituacaoAtendimento } from '../common/situacao-atendimento';
 import { CreateAtendimentoDto } from './dto/create-atendimento.dto';
@@ -19,6 +20,7 @@ export class AtendimentosService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly acesso: AcessoService,
+    private readonly notificacoes: NotificacoesService,
   ) {}
 
   // ----------------------------------------------------------------
@@ -31,8 +33,8 @@ export class AtendimentosService {
     await this.garantirPacienteAtivo(dto.id_usuario_paciente);
     await this.garantirFormulariosAtivos(dto.formularios);
 
-    try {
-      return await this.prisma.atendimento.create({
+    const criado = await this.prisma.atendimento
+      .create({
         data: {
           descricao: dto.descricao,
           situacao_atendimento: {
@@ -55,10 +57,13 @@ export class AtendimentosService {
           },
         },
         include: this.includePadrao(),
-      }).then((a) => this.comStatusFormularios(a));
-    } catch (e) {
-      throw this.tratarErroRelacao(e);
-    }
+      })
+      .catch((e: unknown) => {
+        throw this.tratarErroRelacao(e);
+      });
+    // o paciente é avisado de que foi incluído no atendimento
+    await this.notificacoes.pacienteIncluido(criado.id_atendimento, user);
+    return this.comStatusFormularios(criado);
   }
 
   // ----------------------------------------------------------------
@@ -184,9 +189,10 @@ export class AtendimentosService {
     if (dto.id_unidade_atendimento !== undefined) {
       await this.acesso.exigirUnidadePermitida(user, dto.id_unidade_atendimento);
     }
+    const pacienteAnterior = atendimento.id_usuario_paciente;
 
-    try {
-      return await this.prisma.atendimento.update({
+    const alterado = await this.prisma.atendimento
+      .update({
         where: { id_atendimento: id },
         data: {
           descricao: dto.descricao,
@@ -206,10 +212,17 @@ export class AtendimentosService {
             : {}),
         },
         include: this.includePadrao(),
-      }).then((a) => this.comStatusFormularios(a));
-    } catch (e) {
-      throw this.tratarErroRelacao(e);
+      })
+      .catch((e: unknown) => {
+        throw this.tratarErroRelacao(e);
+      });
+    // troca de paciente: o novo é avisado; os avisos do anterior sobre este
+    // atendimento saem (ele não tem mais acesso)
+    if (alterado.id_usuario_paciente !== pacienteAnterior) {
+      await this.notificacoes.pacienteRemovido(id, pacienteAnterior);
+      await this.notificacoes.pacienteIncluido(id, user);
     }
+    return this.comStatusFormularios(alterado);
   }
 
   // ----------------------------------------------------------------
@@ -262,6 +275,7 @@ export class AtendimentosService {
     }
 
     await recalcularSituacaoAtendimento(this.prisma, id);
+    await this.notificacoes.formulariosAtribuidos(id, novos, user);
     return this.findOne(id, user);
   }
 
