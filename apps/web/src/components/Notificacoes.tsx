@@ -139,7 +139,9 @@ export function SinoMovel() {
   return (
     <NavLink
       to="/notificacoes"
-      className={({ isActive }) => 'topo-movel-sino' + (isActive ? ' is-active' : '')}
+      // tipo explícito (como no Sidebar): no build do Render (npm ci só do apps/web) os tipos do
+      // react-router não acham o @types/react e o className do NavLink perde a tipagem
+      className={({ isActive }: { isActive: boolean }) => 'topo-movel-sino' + (isActive ? ' is-active' : '')}
       aria-label={naoLidas > 0 ? `Notificações: ${rotuloContagem(naoLidas)}` : 'Notificações'}
     >
       <IcSino lg />
