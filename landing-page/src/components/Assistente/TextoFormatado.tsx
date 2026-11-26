@@ -1,15 +1,18 @@
 import type { ReactNode } from "react";
 
-// A API responde em markdown simples (negrito, listas e links).
+// A API responde em markdown simples (negrito, itálico, listas e links).
 // Montamos os elementos React à mão, sem innerHTML, para nunca injetar HTML vindo de fora.
 
-const PADRAO_INLINE = /(\*\*[^*]+\*\*|https?:\/\/[^\s<>()]+)/g;
+const PADRAO_INLINE = /(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|https?:\/\/[^\s<>()]+)/g;
 
 function inline(texto: string, chave: string): ReactNode[] {
   return texto.split(PADRAO_INLINE).map((parte, i) => {
     if (!parte) return null;
     if (parte.startsWith("**") && parte.endsWith("**")) {
       return <strong key={`${chave}-${i}`}>{parte.slice(2, -2)}</strong>;
+    }
+    if (parte.length > 2 && parte.startsWith("*") && parte.endsWith("*")) {
+      return <em key={`${chave}-${i}`}>{parte.slice(1, -1)}</em>;
     }
     if (/^https?:\/\//.test(parte)) {
       const sobra = parte.match(/[.,;:!?]+$/)?.[0] ?? "";
