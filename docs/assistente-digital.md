@@ -71,6 +71,10 @@ Pontos de atenção:
 6. **Restos de outros projetos:** resolvido no README e no Render: o serviço agora é o
    `pasi-bot-api`. O perfil do usuário (`/usuarios/{usuario}/perfil`) ainda tem campos do FinBot
    das aulas (`objetivo`, `experiencia`).
+7. **Pendente: resposta atrasada depois de "Recomeçar":** se a pessoa recomeça a conversa enquanto
+   a IA ainda está respondendo, a resposta da pergunta anterior aparece na conversa nova. Acontece
+   na landing (`Assistente.tsx`) e no app (`AssistenteScreen.tsx`). A correção seria descartar a
+   resposta quando a sessão mudou entre o envio e a volta da API.
 
 # Assistente digital no app do paciente
 

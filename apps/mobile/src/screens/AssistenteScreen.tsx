@@ -480,7 +480,7 @@ function CartaoServico({ servico }: { servico: TipoServico }) {
         <Text className="text-xs font-semibold text-gray-500 uppercase mt-3 mb-1">O que atende</Text>
         {s.atende.map((item) => (
           <View key={item} className="flex-row items-start mt-1">
-            <MaterialIcons name="check" size={16} color={cores.sucesso} style={{ marginRight: 6, marginTop: 2 }} />
+            <MaterialIcons name="check" size={16} color={cores.sucessoTexto} style={{ marginRight: 6, marginTop: 2 }} />
             <Text className="flex-1 text-sm text-gray-800 leading-5">{item}</Text>
           </View>
         ))}
