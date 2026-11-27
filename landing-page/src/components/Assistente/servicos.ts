@@ -97,10 +97,8 @@ export const MENSAGEM_RISCO =
   "Se você corre risco agora, ligue **192 (SAMU)** ou vá ao pronto-socorro mais próximo. " +
   "Para conversar com alguém agora, ligue **188 (CVV)**, 24 horas e de graça.";
 
-export const MOPS_URL = "https://aplicacoes.mds.gov.br/sagi/mops/";
-
 function normalizar(texto: string) {
-  return texto.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
 const PALAVRAS_RISCO = ["suicid", "me matar", "tirar minha vida", "nao quero mais viver", "quero morrer"];
