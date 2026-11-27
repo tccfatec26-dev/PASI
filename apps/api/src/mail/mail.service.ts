@@ -7,8 +7,6 @@ export interface EmailParaEnviar {
   assunto: string;
   html: string;
   texto: string;
-  /** Endereço do "Responder" (ex.: o e-mail do paciente no pedido de atendente). */
-  responderPara?: { email: string; nome?: string };
 }
 
 /**
@@ -49,14 +47,6 @@ export class MailService {
         body: JSON.stringify({
           sender: { email: fromEmail, name: fromName },
           to: [{ email: email.para, ...(email.nome ? { name: email.nome } : {}) }],
-          ...(email.responderPara
-            ? {
-                replyTo: {
-                  email: email.responderPara.email,
-                  ...(email.responderPara.nome ? { name: email.responderPara.nome } : {}),
-                },
-              }
-            : {}),
           subject: email.assunto,
           htmlContent: email.html,
           textContent: email.texto,
@@ -191,73 +181,6 @@ export class MailService {
         `<p><strong>${this.esc(dados.paciente)}</strong> respondeu <strong>“${this.esc(dados.formulario)}”</strong> no atendimento <strong>${this.esc(dados.protocolo)}</strong>.</p>
          ${todos ? `<p>${this.esc(todos)}</p>` : ''}`,
         { texto: 'Ver as respostas', url: link },
-      ),
-    });
-  }
-
-  /**
-   * Pedido de atendente feito pelo paciente no assistente do app. Vai para o
-   * e-mail da unidade do atendimento; o "Responder" do e-mail vai direto para
-   * o paciente.
-   */
-  enviarPedidoAtendente(
-    para: string,
-    unidade: string,
-    dados: {
-      paciente: { nome: string; email: string; celular: string };
-      protocolo: string;
-      descricao: string | null;
-      assunto: string;
-      mensagem: string | null;
-      conversa: { autor: 'paciente' | 'assistente'; texto: string }[];
-      idAtendimento: number;
-    },
-  ) {
-    const link = `${this.urlPainel()}/atendimentos/${dados.idAtendimento}`;
-    const p = dados.paciente;
-    const atendimento = dados.descricao ? `${dados.protocolo} (${dados.descricao})` : dados.protocolo;
-    const quem = (a: 'paciente' | 'assistente') => (a === 'paciente' ? p.nome.split(' ')[0] : 'Assistente');
-
-    const conversaTexto = dados.conversa.map((m) => `${quem(m.autor)}: ${m.texto}`).join('\n');
-    const conversaHtml = dados.conversa
-      .map(
-        (m) =>
-          `<p style="margin:0 0 8px"><strong>${this.esc(quem(m.autor))}:</strong> ${this.esc(m.texto)}</p>`,
-      )
-      .join('');
-
-    return this.enviar({
-      para,
-      nome: unidade,
-      responderPara: { email: p.email, nome: p.nome },
-      assunto: `PASI — ${p.nome} pediu atendimento (${dados.protocolo})`,
-      texto:
-        `Olá, equipe ${unidade}!\n\n` +
-        `${p.nome} pediu, pelo assistente do aplicativo PASI, para falar com um atendente.\n\n` +
-        `Atendimento: ${atendimento}\n` +
-        `Assunto: ${dados.assunto}\n` +
-        (dados.mensagem ? `Mensagem: ${dados.mensagem}\n` : '') +
-        `\nContato do paciente\nCelular: ${p.celular}\nE-mail: ${p.email}\n` +
-        (conversaTexto ? `\nConversa com o assistente:\n${conversaTexto}\n` : '') +
-        `\nResponda a este e-mail para falar com o paciente, ou ligue para ele.\n` +
-        `Ver o atendimento no painel: ${link}`,
-      html: this.layout(
-        `Pedido de atendimento`,
-        `<p><strong>${this.esc(p.nome)}</strong> pediu, pelo assistente do aplicativo PASI, para falar com um atendente.</p>
-         <p style="margin:16px 0;padding:16px;border-radius:12px;background:#f8faff;border:1px solid #e5edf9">
-           <strong>Atendimento:</strong> ${this.esc(atendimento)}<br>
-           <strong>Assunto:</strong> ${this.esc(dados.assunto)}
-           ${dados.mensagem ? `<br><strong>Mensagem:</strong> ${this.esc(dados.mensagem)}` : ''}
-         </p>
-         <p><strong>Contato do paciente</strong><br>Celular: ${this.esc(p.celular)}<br>E-mail: ${this.esc(p.email)}</p>
-         ${
-           conversaHtml
-             ? `<p style="margin:16px 0 8px"><strong>Conversa com o assistente</strong></p>
-                <div style="padding:12px 16px;border-radius:12px;background:#f8faff;font-size:14px">${conversaHtml}</div>`
-             : ''
-         }
-         <p style="color:#5b6b82;font-size:13px">Responda a este e-mail para falar com o paciente, ou ligue para ele.</p>`,
-        { texto: 'Ver o atendimento', url: link },
       ),
     });
   }

@@ -252,33 +252,6 @@ export class NotificacoesService {
     });
   }
 
-  /**
-   * O paciente pediu um atendente pelo assistente do app: avisa SÓ quem criou
-   * o atendimento. Devolve se o aviso foi gravado.
-   */
-  async pedidoAtendente(
-    atendimento: { id_atendimento: number; dt_cadastro: Date | null; id_usuario_cad: number | null },
-    assunto: string,
-    paciente: AuthUser,
-  ): Promise<boolean> {
-    if (!atendimento.id_usuario_cad) return false;
-    const idProfissional = atendimento.id_usuario_cad;
-    let gravou = false;
-    await this.semDerrubar('pedido de atendente', async () => {
-      const nomePaciente = await this.nomeDe(paciente.id_usuario);
-      const prot = protocolo(atendimento.id_atendimento, atendimento.dt_cadastro);
-      gravou = await this.gravar({
-        id_usuario: idProfissional,
-        id_tipo_notificacao: TipoNotificacao.PEDIDO_ATENDENTE,
-        titulo: 'Pedido de atendimento',
-        mensagem: `${nomePaciente} pediu para falar com um atendente no atendimento ${prot}: ${assunto}`,
-        id_atendimento: atendimento.id_atendimento,
-        id_usuario_origem: paciente.id_usuario,
-      });
-    });
-    return gravou;
-  }
-
   // ----------------------------------------------------------------
   // Helpers
   // ----------------------------------------------------------------

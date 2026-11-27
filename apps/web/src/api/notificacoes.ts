@@ -2,7 +2,7 @@ import { api } from './client';
 import type { Paginado } from './types';
 
 /** tipo_notificacao (ids fixos, iguais aos da API). */
-export const TipoNotificacao = { INCLUIDO_ATENDIMENTO: 1, NOVOS_FORMULARIOS: 2, FORMULARIO_RESPONDIDO: 3, PEDIDO_ATENDENTE: 4 } as const;
+export const TipoNotificacao = { INCLUIDO_ATENDIMENTO: 1, NOVOS_FORMULARIOS: 2, FORMULARIO_RESPONDIDO: 3 } as const;
 
 export interface Notificacao {
   id_notificacao: number;

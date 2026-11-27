@@ -99,5 +99,8 @@ A URL vem de `EXPO_PUBLIC_ASSISTENTE_API_URL` (sem ela, `https://pasi-bot-api.on
 Nenhum dado pessoal vai para o PASIBot: só o texto digitado e uma sessão aleatória. Não há
 mudança nativa: vai por atualização automática, sem APK novo.
 
-O endpoint `POST /api/assistente/atendente` da API (PR #28) continua no código, mas o app não o
-usa mais.
+A função "Falar com um atendente" (e-mail para a unidade e aviso ao profissional) foi retirada
+da API, do painel e do app: o grupo decidiu não implementar atendimento humano agora. Se o script
+`2026-11-26_pedido_atendente.sql` chegou a ser rodado no Neon, a linha 4 de `tipo_notificacao`
+pode ficar (não atrapalha) ou ser apagada com
+`DELETE FROM tipo_notificacao WHERE id_tipo_notificacao = 4;`.
