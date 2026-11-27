@@ -36,6 +36,8 @@ export interface Atendimento {
   situacao_atendimento: { id_situacao_atendimento: number; nome: string };
   usuario_atendimento_id_usuario_pacienteTousuario: Paciente;
   atendimento_formulario: AtendimentoFormulario[];
+  /** Unidade do atendimento (a API já devolve; usada pelo assistente para o vínculo). */
+  unidade_atendimento?: { id_unidade_atendimento: number; nome: string } | null;
 }
 
 export interface ListaAtendimentos {

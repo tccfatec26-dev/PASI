@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import { Text } from '../acessibilidade/Leitura';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -23,6 +23,7 @@ import { isCpfValido, isEmailValido, isSenhaForte, SENHA_MENSAGEM } from '../uti
 import { maskDataBr, brParaIso } from '../utils/date';
 import { mensagemErroApi } from '../utils/errors';
 import { useCores } from '../acessibilidade/useTema';
+import { TelaComTeclado } from '../components/TelaComTeclado';
 
 const STEPS = ['Pessoal', 'Endereço', 'Acesso'];
 
@@ -140,10 +141,7 @@ export function CadastroPacienteScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <TelaComTeclado className="flex-1">
       <ScrollView ref={scrollRef} className="flex-1 bg-white" keyboardShouldPersistTaps="handled">
         <ScreenHeader
           title="Cadastro Paciente"
@@ -303,6 +301,6 @@ export function CadastroPacienteScreen() {
           </View>
         )}
       </FormFooter>
-    </KeyboardAvoidingView>
+    </TelaComTeclado>
   );
 }

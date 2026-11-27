@@ -4,6 +4,8 @@
 Eles são o CONTRATO: a FastAPI valida o que chega (erro 422 se faltar campo)
 e gera a documentação automática em /docs.
 """
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -17,11 +19,20 @@ class Pergunta(BaseModel):
     usuario: str = "anonimo"
 
 
+class ServicoIndicado(BaseModel):
+    """Serviço que atende a situação da pessoa, identificado na conversa (ver app/tools/triagem.py)."""
+    servico: Literal["CRAS", "CREAS", "CAPS"]
+    origem: Literal["ia", "busca"]  # ia = indicar_servico; busca = a pessoa pediu unidades desse serviço
+    motivo: str = ""
+
+
 class Resposta(BaseModel):
     """O que a API DEVOLVE em POST /chat."""
     resposta: str
     agente: str = "conversa"  # qual agente respondeu
     fontes: list[str] = []  # de onde vieram os dados da resposta (a partir da Aula 4)
+    # Opcional: None enquanto a conversa não deixar claro qual serviço procurar.
+    servico_indicado: ServicoIndicado | None = None
 
 class Mensagem(BaseModel):
     """Uma mensagem do histórico, devolvida em GET /sessoes/{sessao}/mensagens."""

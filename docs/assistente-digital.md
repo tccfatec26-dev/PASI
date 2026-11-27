@@ -71,10 +71,23 @@ Pontos de atenção:
 6. **Restos de outros projetos:** resolvido no README e no Render: o serviço agora é o
    `pasi-bot-api`. O perfil do usuário (`/usuarios/{usuario}/perfil`) ainda tem campos do FinBot
    das aulas (`objetivo`, `experiencia`).
-7. **Pendente: resposta atrasada depois de "Recomeçar":** se a pessoa recomeça a conversa enquanto
-   a IA ainda está respondendo, a resposta da pergunta anterior aparece na conversa nova. Acontece
-   na landing (`Assistente.tsx`) e no app (`AssistenteScreen.tsx`). A correção seria descartar a
-   resposta quando a sessão mudou entre o envio e a volta da API.
+7. **Resposta atrasada depois de "Recomeçar": corrigido no código, falta conferir no aparelho.**
+   Antes, se a pessoa recomeçava a conversa enquanto a IA ainda respondia, a resposta da pergunta
+   anterior aparecia na conversa nova. Agora a landing e o app usam o mesmo módulo,
+   `conversa.ts` (`landing-page/src/components/Assistente/` e `apps/mobile/src/assistente/`), que:
+   - dá um número a cada conversa e guarda, em cada pergunta, o número e a sessão em que ela foi feita;
+   - ao recomeçar, cancela a requisição pendente (`AbortController`, junto com o tempo limite de 90 s);
+   - descarta a resposta que chegar mesmo assim, porque ela não pertence à conversa atual;
+   - zera o "escrevendo…", o aviso de demora, o modo CEP e o serviço escolhido, e cria uma sessão nova
+     na API, então a conversa nova começa sem histórico.
+
+   **Inatividade:** depois de 15 minutos sem ação da pessoa, a conversa é encerrada com a mensagem
+   "Atendimento finalizado por inatividade." e o botão "Começar nova conversa". Mandar uma mensagem
+   também abre uma conversa nova. A landing guarda a hora da última atividade no `sessionStorage`:
+   ao recarregar a página depois de 15 minutos, a sessão antiga não é reaproveitada. Isso não mexe
+   em banco nenhum: o histórico antigo continua no MongoDB do bot, só não é mais usado.
+
+   Testes: `npm test` na landing (4 testes) e no app (6 testes de `conversa.ts`).
 
 # Assistente digital no app do paciente
 
@@ -108,3 +121,80 @@ da API, do painel e do app: o grupo decidiu não implementar atendimento humano 
 `2026-11-26_pedido_atendente.sql` chegou a ser rodado no Neon, a linha 4 de `tipo_notificacao`
 pode ficar (não atrapalha) ou ser apagada com
 `DELETE FROM tipo_notificacao WHERE id_tipo_notificacao = 4;`.
+
+## Unidade da conversa (vínculo com a unidade de atendimento)
+
+No app, a conversa fica ligada à unidade em que o paciente **já é atendido**, para a assistente
+responder com esse contexto. O vínculo vale durante a conversa e some ao recomeçar ou por
+inatividade. Ele **não é gravado** no banco do PASI e nenhuma tabela foi criada ou alterada.
+
+**De onde vêm as unidades.** Só dos atendimentos do próprio paciente (`GET /atendimentos`, campo
+`unidade_atendimento`), com o tipo de cada unidade vindo de `GET /apoio/unidades`
+(`tipo_unidade_atendimento.nome`, por sigla ou por extenso). Atendimentos inativos não contam.
+Uma unidade com tipo que não é CRAS, CREAS nem CAPS nunca é escolhida pelo tipo. Nenhuma unidade
+é inventada.
+
+**Critérios que permitem o vínculo** (`apps/mobile/src/assistente/vinculo.ts`):
+
+| Critério | Como acontece | Resultado |
+|---|---|---|
+| Dúvida em um formulário | Botão de ajuda (?) no cabeçalho da tela do formulário, ou "Tenho dúvida nesses formulários" no chat | A unidade daquele atendimento |
+| Serviço escolhido nos botões | "Benefícios…", "Violência…", "Saúde mental…" ou a triagem | A unidade do paciente desse tipo |
+| Serviço identificado pela IA | O PASIBot chama a ferramenta `indicar_servico`, ou a pessoa pede unidades de um serviço | A unidade do paciente desse tipo |
+| Escolha da pessoa | Quando há mais de uma unidade do mesmo tipo, a assistente pergunta qual | A unidade escolhida |
+
+**Quando não dá para vincular com segurança:**
+- a IA não identificou o serviço: nada é vinculado, e a conversa segue com perguntas ou com a triagem por botões;
+- a API do bot está fora do ar e o serviço saiu da triagem por palavras: a assistente mostra o
+  serviço, mas pergunta "É isso?" antes de vincular;
+- o paciente não é atendido em nenhuma unidade daquele tipo: nada é vinculado, e a assistente
+  oferece a busca da unidade pública mais próxima pelo CEP;
+- os dados do paciente não carregaram: nada é vinculado.
+
+A unidade aparece numa faixa abaixo do cabeçalho ("Unidade desta conversa"), com o botão
+**Remover**. Quando o vínculo muda, a pergunta seguinte leva o contexto para a IA, no mesmo formato
+que o app já usava: `(Contexto do atendimento: a pessoa já é atendida na unidade CRAS Centro (CRAS), Mauá/SP.)`.
+Vai só o nome, o tipo e a cidade da unidade, nenhum dado pessoal.
+
+**No PASIBot** (`pasi_bot/app/tools/triagem.py`): nova ferramenta `indicar_servico` e novo campo
+opcional `servico_indicado` na resposta de `POST /chat`:
+
+```json
+{ "resposta": "...", "agente": "pasibot", "fontes": [],
+  "servico_indicado": { "servico": "CREAS", "origem": "ia", "motivo": "relato de violência em casa" } }
+```
+
+`origem` é `ia` (a IA chamou `indicar_servico`) ou `busca` (a IA chamou `buscar_caps` ou
+`buscar_cras_creas`, porque a pessoa pediu unidades desse serviço). O valor sai do histórico da
+sessão no checkpointer, então continua valendo nas perguntas seguintes até mudar. A landing, que
+não tem login, só usa o campo como serviço padrão da busca por CEP. Clientes antigos ignoram o campo.
+
+Para publicar:
+- o prompt `sistema.md` ganhou as regras da ferramenta. Se o Langfuse estiver ativo, rode
+  `python -m scripts.publicar_prompts` para a versão de produção receber o texto novo;
+- quando a IA chama `indicar_servico`, há uma volta a mais no loop de ferramentas, e a resposta
+  daquele turno demora alguns segundos a mais.
+
+Testes: `pytest tests/test_triagem_unidade.py` no bot (precisa do ambiente do bot) e `npm test` no
+app (10 testes de `vinculo.ts`).
+
+## Teclado virtual cobrindo o campo de texto
+
+**App.** O app é edge-to-edge no Android (padrão do Expo), então a janela não encolhe quando o
+teclado abre. As telas usavam `KeyboardAvoidingView` só no iOS, e no Android o teclado cobria o
+campo. Agora todas as telas com campo de texto usam `TelaComTeclado`
+(`apps/mobile/src/components/TelaComTeclado.tsx`), com `behavior="padding"` nas duas plataformas,
+como recomenda o guia de teclado do Expo: assistente, login, esqueci a senha, cadastro, perfil e
+responder formulário. No chat, a última mensagem rola para cima do teclado, a folga da barra do
+sistema sai enquanto o teclado está aberto e o aviso de privacidade se esconde para sobrar espaço.
+Não há mudança nativa, então vai por atualização automática, sem APK novo.
+
+**Landing.** O painel da assistente é `position: fixed`, e no celular o teclado ficava por cima do
+campo. Agora:
+- a meta `viewport` tem `interactive-widget=resizes-content`, que faz o Chrome do Android encolher
+  a página quando o teclado abre (o formulário de contato também se beneficia);
+- no iOS e nos navegadores que ignoram essa opção, o painel acompanha `window.visualViewport`: as
+  variáveis `--assistente-teclado` e `--assistente-visivel` sobem e encolhem o painel acima do teclado.
+
+Falta conferir em aparelhos reais (Android e iPhone, telas pequenas e grandes). Os testes automáticos
+não cobrem o teclado.

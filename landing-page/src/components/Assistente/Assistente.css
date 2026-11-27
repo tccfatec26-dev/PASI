@@ -86,13 +86,18 @@
 
 /* ---------- painel ---------- */
 
+/*
+ * --assistente-teclado e --assistente-visivel vêm do Assistente.tsx (window.visualViewport):
+ * com o teclado virtual aberto (celular e tablet), o painel sobe e encolhe para o campo de texto
+ * ficar acima do teclado. Sem teclado, valem 0 e a altura da janela, e nada muda.
+ */
 .assistente-painel {
   position: fixed;
   left: 24px;
-  bottom: 96px;
+  bottom: max(96px, calc(var(--assistente-teclado, 0px) + 8px));
   z-index: 55;
   width: 392px;
-  height: min(640px, calc(100vh - 120px));
+  height: min(640px, calc(var(--assistente-visivel, 100vh) - 120px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -443,9 +448,9 @@
   .assistente-painel {
     left: 8px;
     right: 8px;
-    bottom: 84px;
+    bottom: max(84px, calc(var(--assistente-teclado, 0px) + 8px));
     width: auto;
-    height: calc(100dvh - 100px);
+    height: calc(var(--assistente-visivel, 100dvh) - 100px);
   }
 
   /* 16px evita o zoom automático do iOS ao focar o campo */

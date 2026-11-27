@@ -4,8 +4,6 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { Text, TouchableOpacity } from '../../acessibilidade/Leitura';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -20,6 +18,7 @@ import { SituacaoFormulario, TipoPergunta, TIPOS_COM_OPCOES } from '../../consta
 import { useCores } from '../../acessibilidade/useTema';
 import { lerSeAtivo } from '../../acessibilidade/fala';
 import { mensagemErroApi } from '../../utils/errors';
+import { TelaComTeclado } from '../../components/TelaComTeclado';
 
 type RouteT = RouteProp<PacienteStackParamList, 'ResponderFormulario'>;
 
@@ -225,11 +224,23 @@ export function ResponderFormularioScreen() {
   const progresso = perguntas.length > 0 ? Math.min(respondidas / perguntas.length, 1) : 0;
 
   return (
-    <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <TelaComTeclado className="flex-1">
       <ScreenHeader
         title={nomeFormulario}
         subtitle={`${respondidas} de ${perguntas.length} respondidas`}
         onBack={voltar}
+        right={
+          // dúvida neste formulário: a assistente abre já ligada à unidade deste atendimento
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Assistente', { idAtendimento, nomeFormulario })}
+            className="w-9 h-9 rounded-xl bg-sobre-primaria/15 items-center justify-center"
+            accessibilityRole="button"
+            accessibilityLabel="Dúvida neste formulário? Falar com a assistente"
+            hitSlop={6}
+          >
+            <MaterialIcons name="help-outline" size={22} color={cores.sobrePrimaria} />
+          </TouchableOpacity>
+        }
       >
         <View
           className="h-1.5 bg-sobre-primaria/20 rounded-full"
@@ -388,6 +399,6 @@ export function ResponderFormularioScreen() {
           </View>
         </FormFooter>
       )}
-    </KeyboardAvoidingView>
+    </TelaComTeclado>
   );
 }

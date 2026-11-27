@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Image, ScrollView } from 'react-native';
 import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { authService } from '../services/auth';
 import { useAuth } from '../context/AuthContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { mensagemErroApi } from '../utils/errors';
+import { TelaComTeclado } from '../components/TelaComTeclado';
 
 export function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -55,10 +56,7 @@ export function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <TelaComTeclado className="flex-1">
       <ScrollView className="flex-1 bg-white" keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View className="bg-cabecalho items-center pt-16 pb-10 px-6 rounded-b-3xl">
@@ -125,6 +123,6 @@ export function LoginScreen() {
           />
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </TelaComTeclado>
   );
 }

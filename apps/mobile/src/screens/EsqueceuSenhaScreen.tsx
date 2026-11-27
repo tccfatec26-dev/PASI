@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Image, ScrollView } from 'react-native';
 import { Text } from '../acessibilidade/Leitura';
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '../navigation/types';
@@ -11,6 +11,7 @@ import { authService } from '../services/auth';
 import { useFeedback } from '../context/FeedbackContext';
 import { isEmailValido } from '../utils/validation';
 import { useCores } from '../acessibilidade/useTema';
+import { TelaComTeclado } from '../components/TelaComTeclado';
 
 export function EsqueceuSenhaScreen() {
   const cores = useCores();
@@ -39,10 +40,7 @@ export function EsqueceuSenhaScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <TelaComTeclado className="flex-1">
       <ScrollView className="flex-1 bg-white" keyboardShouldPersistTaps="handled">
         <ScreenHeader variant="large" onBack={() => navigation.goBack()}>
           <View className="items-center pb-4">
@@ -85,6 +83,6 @@ export function EsqueceuSenhaScreen() {
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </TelaComTeclado>
   );
 }

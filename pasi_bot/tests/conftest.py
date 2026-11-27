@@ -21,6 +21,7 @@ from app.llm import fabrica  # noqa: E402
 ARGS_PADRAO = {  # argumentos que o modelo falso usa ao pedir cada ferramenta
     "buscar_caps": {"municipio": "Mauá", "uf": "SP"},
     "buscar_cras_creas": {"tipo": "CRAS", "municipio": "Mauá", "uf": "SP"},
+    "indicar_servico": {"servico": "CREAS", "motivo": "relato de violência em casa"},
 }
 
 

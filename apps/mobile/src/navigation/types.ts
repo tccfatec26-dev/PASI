@@ -17,7 +17,8 @@ export type PacienteStackParamList = {
   };
   Perfil: undefined;
   Notificacoes: undefined;
-  Assistente: undefined;
+  /** idAtendimento: a dúvida é sobre um formulário desse atendimento (abre ligada à unidade dele). */
+  Assistente: { idAtendimento?: number; nomeFormulario?: string } | undefined;
 };
 
 export type AuthNavProp = NativeStackNavigationProp<AuthStackParamList>;

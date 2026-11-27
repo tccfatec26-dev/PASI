@@ -72,7 +72,17 @@ export type Acao =
   | { tipo: 'comoComecar' }
   | { tipo: 'inicio' }
   | { tipo: 'app' }
-  | { tipo: 'topico'; topico: IdTopico };
+  | { tipo: 'topico'; topico: IdTopico }
+  /** dúvida sobre os formulários de um atendimento: liga a conversa à unidade dele */
+  | { tipo: 'formulario'; idAtendimento: number }
+  /** a pessoa escolheu uma das unidades em que é atendida */
+  | { tipo: 'unidade'; idUnidade: number; servico: TipoServico | null }
+  /** a pessoa confirmou o serviço sugerido pela triagem por palavras */
+  | { tipo: 'confirmarServico'; servico: TipoServico }
+  /** depois de "Atendimento finalizado por inatividade" */
+  | { tipo: 'novaConversa' }
+  /** só leva o foco para o campo de texto */
+  | { tipo: 'escrever' };
 
 export interface Opcao {
   rotulo: string;

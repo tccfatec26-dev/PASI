@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
-import { acordarApi, obterSessao, perguntar, renovarSessao } from "./api";
+import { acordarApi, obterSessao, perguntar, registrarAtividadeDaSessao, renovarSessao } from "./api";
+import { ControleConversa, MENSAGEM_INATIVIDADE } from "./conversa";
 import {
   MENSAGEM_RISCO,
   OPCOES_INICIAIS,
@@ -28,6 +29,9 @@ type ModoCep = { servico: TipoServico | null } | null;
 const CHAVE_AVISO = "pasi-assistente-aviso-fechado";
 const ATRASO_AVISO_MS = 5000;
 const ATRASO_DEMORA_MS = 6000;
+/** De quanto em quanto tempo o painel confere a inatividade (o limite é 15 min, ver conversa.ts). */
+const VERIFICAR_INATIVIDADE_MS = 30_000;
+const LARGURA_CELULAR = 550;
 
 const BOAS_VINDAS: NovaMensagem[] = [
   {
@@ -59,8 +63,12 @@ function Assistente() {
   const [modoCep, setModoCep] = useState<ModoCep>(null);
   const [ultimoServico, setUltimoServico] = useState<TipoServico | null>(null);
   const [mostrarAviso, setMostrarAviso] = useState(false);
+  const [encerrada, setEncerrada] = useState(false);
 
   const proximoId = useRef(1);
+  // número da conversa + cancelamento: resposta de conversa encerrada é descartada (Recomeçar)
+  const controle = useRef(new ControleConversa());
+  const painelRef = useRef<HTMLDivElement | null>(null);
   const sessao = useRef<string | null>(null);
   const contextoEnviado = useRef(false);
   const listaRef = useRef<HTMLDivElement | null>(null);
@@ -90,6 +98,28 @@ function Assistente() {
     setMensagens((atuais) => [...atuais, ...comId]);
   };
 
+  // celular: o teclado virtual não encolhe o painel fixo (iOS e Android sem interactive-widget);
+  // acompanhamos a área visível (visualViewport) para o campo de texto ficar acima do teclado
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const painel = painelRef.current;
+    if (!aberto || !vv || !painel) return;
+    const ajustar = () => {
+      const teclado = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      painel.style.setProperty("--assistente-teclado", `${Math.round(teclado)}px`);
+      painel.style.setProperty("--assistente-visivel", `${Math.round(vv.height)}px`);
+      const lista = listaRef.current;
+      if (teclado > 0 && lista) lista.scrollTop = lista.scrollHeight;
+    };
+    ajustar();
+    vv.addEventListener("resize", ajustar);
+    vv.addEventListener("scroll", ajustar);
+    return () => {
+      vv.removeEventListener("resize", ajustar);
+      vv.removeEventListener("scroll", ajustar);
+    };
+  }, [aberto]);
+
   const fecharAviso = () => {
     setMostrarAviso(false);
     try {
@@ -111,16 +141,54 @@ function Assistente() {
     botaoRef.current?.focus();
   };
 
-  const recomecar = () => {
+  /** Encerra a conversa atual: cancela a pergunta pendente e zera o estado. A próxima usa sessão nova. */
+  const reiniciarEstado = () => {
+    controle.current.encerrar();
     sessao.current = renovarSessao();
     contextoEnviado.current = false;
+    setPensando(false);
+    setDemorando(false);
     setModoCep(null);
     setUltimoServico(null);
     setRascunho("");
+  };
+
+  const recomecar = () => {
+    reiniciarEstado();
+    setEncerrada(false);
     setMensagens([]);
     adicionar(...BOAS_VINDAS);
     campoRef.current?.focus();
   };
+
+  const encerrarPorInatividade = () => {
+    reiniciarEstado();
+    setEncerrada(true);
+    setMensagens([]);
+    adicionar({
+      autor: "assistente",
+      texto: `${MENSAGEM_INATIVIDADE} Para continuar, comece uma nova conversa.`,
+      opcoes: [{ rotulo: "Começar nova conversa", acao: { tipo: "inicio" } }],
+    });
+  };
+
+  // 15 min sem atividade: encerra (confere a cada 30 s e quando a aba volta a ficar visível)
+  useEffect(() => {
+    if (encerrada) return;
+    const conferir = () => {
+      if (controle.current.inativa()) encerrarPorInatividade();
+    };
+    const timer = window.setInterval(conferir, VERIFICAR_INATIVIDADE_MS);
+    const aoVoltar = () => {
+      if (document.visibilityState === "visible") conferir();
+    };
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", aoVoltar);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [encerrada]);
 
   const indicarServico = (servico: TipoServico) => {
     setUltimoServico(servico);
@@ -137,14 +205,27 @@ function Assistente() {
     extras: { mapa?: string; opcoes?: Opcao[]; servicoCep?: TipoServico | null } = {}
   ) => {
     sessao.current ??= obterSessao();
+    const req = controle.current.iniciarRequisicao();
+    const sessaoDaPergunta = sessao.current;
+    // a resposta só aparece se a conversa em que a pergunta foi feita ainda for a atual
+    const ehDestaConversa = () => controle.current.ehAtual(req.numero) && sessao.current === sessaoDaPergunta;
+    registrarAtividadeDaSessao();
     setPensando(true);
     setDemorando(false);
-    const avisoDemora = window.setTimeout(() => setDemorando(true), ATRASO_DEMORA_MS);
+    const avisoDemora = window.setTimeout(() => {
+      if (ehDestaConversa()) setDemorando(true);
+    }, ATRASO_DEMORA_MS);
     try {
-      const { resposta, fontes } = await perguntar(mensagemApi, sessao.current);
+      const r = await perguntar(mensagemApi, sessaoDaPergunta, req.signal);
+      if (!ehDestaConversa()) return; // resposta de uma conversa encerrada: descarta
+      registrarAtividadeDaSessao();
+      controle.current.registrarAtividade();
       contextoEnviado.current = true;
-      adicionar({ autor: "assistente", texto: resposta, fontes, mapa: extras.mapa, opcoes: extras.opcoes });
+      adicionar({ autor: "assistente", texto: r.resposta, fontes: r.fontes, mapa: extras.mapa, opcoes: extras.opcoes });
+      // serviço identificado pela IA: vira o padrão de "Buscar unidade pelo CEP"
+      if (r.servico_indicado) setUltimoServico(r.servico_indicado.servico);
     } catch {
+      if (!ehDestaConversa()) return; // cancelada pelo Recomeçar ou pela inatividade
       if (extras.servicoCep !== undefined) {
         adicionar({
           autor: "assistente",
@@ -167,8 +248,11 @@ function Assistente() {
       }
     } finally {
       window.clearTimeout(avisoDemora);
-      setPensando(false);
-      setDemorando(false);
+      req.concluir();
+      if (ehDestaConversa()) {
+        setPensando(false);
+        setDemorando(false);
+      }
     }
   };
 
@@ -206,6 +290,13 @@ function Assistente() {
   };
 
   const escolher = (opcao: Opcao) => {
+    // o relógio de inatividade conta a partir das ações da pessoa (abrir o chat não conta)
+    controle.current.registrarAtividade();
+    if (encerrada) {
+      // "Começar nova conversa" depois do encerramento por inatividade
+      recomecar();
+      return;
+    }
     if (pensando) return;
     adicionar({ autor: "pessoa", texto: opcao.rotulo });
     const { acao } = opcao;
@@ -258,8 +349,18 @@ function Assistente() {
     const texto = rascunho.trim();
     if (!texto || pensando) return;
     setRascunho("");
+    controle.current.registrarAtividade();
 
-    if (modoCep) {
+    // depois de "Atendimento finalizado por inatividade", a mensagem abre uma conversa nova
+    let servicoAtual = ultimoServico;
+    if (encerrada) {
+      reiniciarEstado();
+      setEncerrada(false);
+      setMensagens([]);
+      servicoAtual = null;
+    }
+
+    if (modoCep && !encerrada) {
       const digitos = texto.replace(/\D/g, "");
       if (digitos.length === 8) {
         buscarCep(digitos, modoCep.servico);
@@ -274,7 +375,7 @@ function Assistente() {
 
     const cepNoTexto = texto.match(/\b\d{5}-?\d{3}\b/);
     if (cepNoTexto && texto.replace(/\D/g, "").length === 8) {
-      buscarCep(cepNoTexto[0].replace(/\D/g, ""), ultimoServico);
+      buscarCep(cepNoTexto[0].replace(/\D/g, ""), servicoAtual);
       return;
     }
 
@@ -283,13 +384,25 @@ function Assistente() {
 
     // a primeira pergunta à IA leva o serviço já indicado pelos botões, para ela não perder o contexto
     const mensagemApi =
-      ultimoServico && !contextoEnviado.current
-        ? `(Contexto: a pessoa já foi orientada a procurar o ${ultimoServico}.) ${texto}`
+      servicoAtual && !contextoEnviado.current
+        ? `(Contexto: a pessoa já foi orientada a procurar o ${servicoAtual}.) ${texto}`
         : texto;
     void consultarIa(mensagemApi, texto);
   };
 
-  const aoDigitar = (valor: string) => setRascunho(modoCep ? formatarCep(valor) : valor);
+  const aoDigitar = (valor: string) => {
+    controle.current.registrarAtividade();
+    setRascunho(modoCep ? formatarCep(valor) : valor);
+  };
+
+  // no celular, ao focar o campo, a última mensagem continua à vista acima do teclado
+  const aoFocarCampo = () => {
+    if (window.innerWidth > LARGURA_CELULAR) return;
+    window.setTimeout(() => {
+      const lista = listaRef.current;
+      if (lista) lista.scrollTop = lista.scrollHeight;
+    }, 300);
+  };
 
   const aoApertarTecla = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") fechar();
@@ -312,6 +425,7 @@ function Assistente() {
 
       {aberto && (
         <div
+          ref={painelRef}
           className="assistente-painel"
           id="assistente-painel"
           role="dialog"
@@ -406,6 +520,7 @@ function Assistente() {
                 placeholder={modoCep ? "Digite o CEP, ex.: 09370-000" : "Escreva sua mensagem…"}
                 value={rascunho}
                 onChange={(event) => aoDigitar(event.target.value)}
+                onFocus={aoFocarCampo}
               />
               <button type="submit" className="assistente-enviar" aria-label="Enviar" disabled={pensando}>
                 <i className="fa-solid fa-paper-plane" aria-hidden="true"></i>

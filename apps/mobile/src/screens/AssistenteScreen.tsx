@@ -1,15 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, ScrollView, TextInput, KeyboardAvoidingView, Platform, Linking } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, ScrollView, TextInput, Linking, AppState } from 'react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 import { falar, lerAviso } from '../acessibilidade/fala';
 import { useCores } from '../acessibilidade/useTema';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { TelaComTeclado, useTecladoAberto } from '../components/TelaComTeclado';
 import { useAuth } from '../context/AuthContext';
-import { PacienteNavProp } from '../navigation/types';
-import { acordarApi, novaSessao, perguntar } from '../services/assistente';
+import { PacienteNavProp, PacienteStackParamList } from '../navigation/types';
+import { acordarApi, novaSessao, perguntar, ServicoIndicado } from '../services/assistente';
+import { atendimentosService, Atendimento } from '../services/atendimentos';
+import { apoioService } from '../services/apoio';
+import { SituacaoAtendimento, SituacaoFormulario } from '../constants/dominio';
+import { formatProtocolo } from '../utils/format';
 import {
   MENSAGEM_RISCO,
   OPCOES_INICIAIS,
@@ -25,13 +30,30 @@ import {
 } from '../assistente/servicos';
 import { TOPICOS, TOPICOS_POR_ID } from '../assistente/conteudo';
 import { TextoFormatado } from '../assistente/TextoFormatado';
+import { ControleConversa, MENSAGEM_INATIVIDADE } from '../assistente/conversa';
+import {
+  OrigemServico,
+  Resolucao,
+  UnidadeDoUsuario,
+  Vinculo,
+  chaveDoVinculo,
+  contextoParaIa,
+  resolverVinculo,
+  unidadesDoUsuario,
+  vinculoDoAtendimento,
+  vinculoEscolhido,
+} from '../assistente/vinculo';
 
 /**
  * Assistente digital do PASI no app: a mesma conversa da landing page
- * (landing-page/src/components/Assistente/Assistente.tsx), com a mesma API
- * (PASIBot), os mesmos botões de triagem, cartões de serviço, busca por CEP e
- * mensagem de risco. No app ela também cumprimenta pelo nome e explica como
- * usar o aplicativo. Todas as cores vêm do tema (claro, escuro, alto contraste).
+ * (landing-page/src/components/Assistente/Assistente.tsx), com a mesma API (PASIBot), os mesmos
+ * botões de triagem, cartões de serviço, busca por CEP e mensagem de risco. No app ela também:
+ *  - cumprimenta pelo nome e explica como usar o aplicativo;
+ *  - liga a conversa à unidade em que o paciente já é atendido (assistente/vinculo.ts), a partir
+ *    do formulário com dúvida ou do serviço indicado pela IA;
+ *  - descarta respostas atrasadas de uma conversa encerrada (Recomeçar ou 15 min sem atividade,
+ *    ver assistente/conversa.ts).
+ * Todas as cores vêm do tema (claro, escuro, alto contraste).
  */
 
 type Mensagem =
@@ -44,6 +66,8 @@ type NovaMensagem = Mensagem extends infer M ? (M extends Mensagem ? Omit<M, 'id
 type ModoCep = { servico: TipoServico | null } | null;
 
 const ATRASO_DEMORA_MS = 6000;
+/** De quanto em quanto tempo a tela confere a inatividade (o limite é 15 min). */
+const VERIFICAR_INATIVIDADE_MS = 30_000;
 
 const primeiroNome = (nome?: string) => (nome ?? '').trim().split(/\s+/)[0] || '';
 
@@ -54,6 +78,20 @@ const paraFala = (t: string) =>
     .replace(/^\s*[-*•]\s+/gm, '')
     .replace(/\|/g, ' ')
     .replace(/https?:\/\/\S+/g, '');
+
+const pendentesDe = (a: Atendimento) =>
+  a.atendimento_formulario.filter(
+    (af) =>
+      !af.status_formulario_paciente ||
+      af.status_formulario_paciente.id_situacao_formulario < SituacaoFormulario.RESPONDIDO,
+  ).length;
+
+/** Situações em que o paciente ainda pode responder formulários. */
+const SITUACOES_RESPONDIVEIS: number[] = [
+  SituacaoAtendimento.CRIADO,
+  SituacaoAtendimento.INICIADO,
+  SituacaoAtendimento.RESPONDIDO,
+];
 
 function boasVindas(nome: string): NovaMensagem[] {
   return [
@@ -76,10 +114,22 @@ const OPCOES_APP: Opcao[] = [
   { rotulo: 'Voltar ao início', acao: { tipo: 'inicio' } },
 ];
 
+/** Por que a conversa foi ligada a esta unidade (o critério aparece para a pessoa). */
+function motivoDoVinculo(v: Vinculo, atendimentos: Atendimento[]) {
+  if (v.origem === 'formulario' && v.idAtendimento) {
+    const a = atendimentos.find((x) => x.id_atendimento === v.idAtendimento);
+    return `a sua dúvida é sobre o atendimento ${a ? formatProtocolo(a.id_atendimento, a.dt_cadastro) : ''}, que é dessa unidade`;
+  }
+  if (v.origem === 'escolha') return 'foi a unidade que você escolheu';
+  return `é o ${v.servico} em que você já é atendido(a)`;
+}
+
 export function AssistenteScreen() {
   const cores = useCores();
   const insets = useSafeAreaInsets();
+  const tecladoAberto = useTecladoAberto();
   const navigation = useNavigation<PacienteNavProp>();
+  const params = useRoute<RouteProp<PacienteStackParamList, 'Assistente'>>().params;
   const { usuario } = useAuth();
   const nome = primeiroNome(usuario?.nome);
 
@@ -92,16 +142,24 @@ export function AssistenteScreen() {
   const [demorando, setDemorando] = useState(false);
   const [modoCep, setModoCep] = useState<ModoCep>(null);
   const [ultimoServico, setUltimoServico] = useState<TipoServico | null>(null);
+  const [encerrada, setEncerrada] = useState(false);
 
+  // dados do paciente para o vínculo: atendimentos e as unidades deles (null = ainda carregando)
+  const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
+  const [unidades, setUnidades] = useState<UnidadeDoUsuario[] | null>(null);
+  const [vinculo, setVinculo] = useState<Vinculo | null>(null);
+
+  const controle = useRef(new ControleConversa());
   const sessao = useRef(novaSessao());
   const contextoEnviado = useRef(false);
+  /** Vínculo já informado à IA nesta sessão (manda o contexto só quando muda). */
+  const vinculoInformado = useRef('');
+  /** Último serviço indicado pela IA já tratado (para não repetir a mesma pergunta). */
+  const servicoIaTratado = useRef('');
   const rolagem = useRef<ScrollView>(null);
   const campo = useRef<TextInput>(null);
 
-  useEffect(() => {
-    acordarApi();
-  }, []);
-
+  // ---------- mensagens ----------
   const adicionar = (...novas: NovaMensagem[]) => {
     setMensagens((atuais) => [...atuais, ...comId(novas)]);
     // TalkBack e leitura em voz alta: a última resposta da assistente é anunciada
@@ -109,37 +167,236 @@ export function AssistenteScreen() {
     if (ultimaTexto && 'texto' in ultimaTexto) lerAviso(paraFala(ultimaTexto.texto));
   };
 
-  const recomecar = () => {
-    sessao.current = novaSessao();
-    contextoEnviado.current = false;
-    setModoCep(null);
-    setUltimoServico(null);
-    setRascunho('');
-    setMensagens(comId(boasVindas(nome)));
+  // ---------- carga inicial ----------
+  useEffect(() => {
+    acordarApi();
+    let ativo = true;
+    Promise.all([
+      atendimentosService.listar({ page: 1, limit: 50, ordenar_por: 'data_desc' }),
+      apoioService.getUnidades(),
+    ])
+      .then(([lista, cadastro]) => {
+        if (!ativo) return;
+        setAtendimentos(lista.data);
+        setUnidades(unidadesDoUsuario(lista.data, cadastro, [SituacaoAtendimento.INATIVO]));
+      })
+      .catch(() => {
+        // sem os dados, a conversa segue normalmente, só não liga a nenhuma unidade
+        if (ativo) setUnidades([]);
+      });
+    const controleDaTela = controle.current;
+    return () => {
+      ativo = false;
+      controleDaTela.encerrar(); // saiu da tela: cancela o que estiver pendente
+    };
+  }, []);
+
+  // quando os dados chegam: contexto do formulário (veio da tela do formulário) ou dos pendentes
+  const contextoInicialMostrado = useRef(false);
+  useEffect(() => {
+    if (unidades === null || contextoInicialMostrado.current) return;
+    contextoInicialMostrado.current = true;
+    mostrarContextoInicial();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unidades]);
+
+  /** `atual`: vínculo em vigor (null logo depois de recomeçar, antes do estado atualizar). */
+  const mostrarContextoInicial = (lista = unidades ?? [], atual: Vinculo | null = vinculo) => {
+    if (params?.idAtendimento) {
+      const r = vinculoDoAtendimento(params.idAtendimento, lista);
+      if (r.status === 'vinculada') {
+        aplicarResolucao(r, { anunciar: true, atual });
+        adicionar({
+          autor: 'assistente',
+          texto: params.nomeFormulario
+            ? `Qual é a sua dúvida no formulário **${params.nomeFormulario}**? Pode escrever com suas palavras.`
+            : 'Qual é a sua dúvida? Pode escrever com suas palavras.',
+          opcoes: [
+            { rotulo: 'Como respondo um formulário?', acao: { tipo: 'topico', topico: 'responder' } },
+            { rotulo: 'Posso parar e continuar depois?', acao: { tipo: 'topico', topico: 'rascunho' } },
+          ],
+        });
+        return;
+      }
+    }
+    const comPendencia = atendimentos.find(
+      (a) => SITUACOES_RESPONDIVEIS.includes(a.id_situacao_atendimento) && pendentesDe(a) > 0,
+    );
+    if (comPendencia) {
+      const n = pendentesDe(comPendencia);
+      const unidade = comPendencia.unidade_atendimento?.nome;
+      adicionar({
+        autor: 'assistente',
+        texto:
+          `O atendimento ${formatProtocolo(comPendencia.id_atendimento, comPendencia.dt_cadastro)}` +
+          `${unidade ? ` (${unidade})` : ''} tem ${n === 1 ? '1 formulário pendente' : `${n} formulários pendentes`}.`,
+        opcoes: [
+          {
+            rotulo: 'Tenho dúvida nesses formulários',
+            acao: { tipo: 'formulario', idAtendimento: comPendencia.id_atendimento },
+          },
+          ...OPCOES_INICIAIS,
+        ],
+      });
+    }
   };
 
-  const indicarServico = (servico: TipoServico) => {
+  // ---------- vínculo com a unidade ----------
+  const aplicarResolucao = (
+    r: Resolucao,
+    { anunciar, atual = vinculo }: { anunciar: boolean; atual?: Vinculo | null },
+  ) => {
+    if (r.status === 'vinculada') {
+      const v = r.vinculo;
+      if (v.servico) setUltimoServico(v.servico);
+      if (chaveDoVinculo(v) === chaveDoVinculo(atual) && atual?.origem === v.origem) return;
+      setVinculo(v);
+      if (anunciar) {
+        adicionar({
+          autor: 'assistente',
+          texto: `Vou considerar a unidade **${v.unidade.nome}** nesta conversa: ${motivoDoVinculo(v, atendimentos)}.`,
+        });
+      }
+    } else if (r.status === 'escolher') {
+      adicionar({
+        autor: 'assistente',
+        texto: `Você é atendido(a) em mais de uma unidade de ${r.servico}. Sobre qual delas é a sua dúvida?`,
+        opcoes: [
+          ...r.opcoes.map((u) => ({
+            rotulo: u.nome,
+            acao: { tipo: 'unidade' as const, idUnidade: u.id, servico: r.servico },
+          })),
+          { rotulo: 'Nenhuma delas', acao: { tipo: 'escrever' } },
+        ],
+      });
+    } else if (r.status === 'confirmar') {
+      adicionar({
+        autor: 'assistente',
+        texto: `Pelo que você escreveu, parece ser um assunto do ${r.servico}. É isso?`,
+        opcoes: [
+          { rotulo: `Sim, é sobre o ${r.servico}`, acao: { tipo: 'confirmarServico', servico: r.servico } },
+          { rotulo: 'Não, quero ver as opções', acao: { tipo: 'triagem' } },
+        ],
+      });
+    } else if (r.status === 'sem-unidade' && anunciar) {
+      adicionar({
+        autor: 'assistente',
+        texto:
+          `Você ainda não é atendido(a) em um ${r.servico} pelo PASI, então não liguei esta conversa a nenhuma unidade. ` +
+          `Posso buscar o ${r.servico} mais perto de você pelo CEP.`,
+        opcoes: [
+          { rotulo: `Encontrar o ${r.servico} mais próximo`, acao: { tipo: 'cep', servico: r.servico } },
+          { rotulo: 'Voltar ao início', acao: { tipo: 'inicio' } },
+        ],
+      });
+    }
+  };
+
+  /** Serviço indicado por um critério válido -> unidade do paciente (se os dados já chegaram). */
+  const vincularPorServico = (servico: TipoServico, origem: OrigemServico) => {
+    if (unidades === null) return; // ainda carregando: sem dados, não vincula
+    aplicarResolucao(resolverVinculo(servico, origem, unidades), { anunciar: true });
+  };
+
+  /** Serviço que veio da IA: só trata quando muda, para não repetir a mesma mensagem. */
+  const tratarServicoDaIa = (indicado: ServicoIndicado | null | undefined) => {
+    if (!indicado) return;
+    const chave = `${indicado.servico}:${indicado.origem}`;
+    if (chave === servicoIaTratado.current) return;
+    servicoIaTratado.current = chave;
+    setUltimoServico(indicado.servico);
+    if (vinculo?.servico === indicado.servico) return; // já ligada a uma unidade desse serviço
+    vincularPorServico(indicado.servico, indicado.origem);
+  };
+
+  // ---------- ciclo de vida da conversa ----------
+  /** Zera tudo e começa uma conversa nova (sessão nova na API, sem histórico). */
+  const reiniciarEstado = () => {
+    controle.current.encerrar(); // cancela a pergunta pendente; resposta atrasada é descartada
+    sessao.current = novaSessao();
+    contextoEnviado.current = false;
+    vinculoInformado.current = '';
+    servicoIaTratado.current = '';
+    setPensando(false);
+    setDemorando(false);
+    setModoCep(null);
+    setUltimoServico(null);
+    setVinculo(null);
+    setRascunho('');
+  };
+
+  const recomecar = () => {
+    reiniciarEstado();
+    setEncerrada(false);
+    setMensagens(comId(boasVindas(nome)));
+    mostrarContextoInicial(unidades ?? [], null);
+  };
+
+  const encerrarPorInatividade = () => {
+    reiniciarEstado();
+    setEncerrada(true);
+    setMensagens(
+      comId([
+        {
+          autor: 'assistente',
+          texto: `${MENSAGEM_INATIVIDADE} Para continuar, comece uma nova conversa.`,
+          opcoes: [{ rotulo: 'Começar nova conversa', acao: { tipo: 'novaConversa' } }],
+        },
+      ]),
+    );
+    lerAviso(MENSAGEM_INATIVIDADE);
+  };
+
+  // confere a inatividade a cada 30 s e quando o app volta para a frente
+  useEffect(() => {
+    const conferir = () => {
+      if (!encerrada && controle.current.inativa()) encerrarPorInatividade();
+    };
+    const timer = setInterval(conferir, VERIFICAR_INATIVIDADE_MS);
+    const assinatura = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') conferir();
+    });
+    return () => {
+      clearInterval(timer);
+      assinatura.remove();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [encerrada]);
+
+  // ---------- respostas ----------
+  const indicarServico = (servico: TipoServico, origem: OrigemServico) => {
     setUltimoServico(servico);
     adicionar(
       { autor: 'assistente', texto: `Pelo que você contou, o lugar indicado é o ${servico}.` },
       { autor: 'assistente', servico, opcoes: opcoesDepoisDoServico(servico) },
     );
+    vincularPorServico(servico, origem);
   };
 
   /** Envia a pergunta para a IA. `textoOriginal` é usado na triagem local se a API falhar. */
   const consultarIa = async (
     mensagemApi: string,
     textoOriginal: string,
-    extras: { mapa?: string; opcoes?: Opcao[]; servicoCep?: TipoServico | null } = {},
+    extras: { mapa?: string; opcoes?: Opcao[]; servicoCep?: TipoServico | null; chaveVinculo?: string } = {},
   ) => {
+    const req = controle.current.iniciarRequisicao();
+    const sessaoDaPergunta = sessao.current;
+    const ehDestaConversa = () => controle.current.ehAtual(req.numero) && sessao.current === sessaoDaPergunta;
     setPensando(true);
     setDemorando(false);
-    const avisoDemora = setTimeout(() => setDemorando(true), ATRASO_DEMORA_MS);
+    const avisoDemora = setTimeout(() => {
+      if (ehDestaConversa()) setDemorando(true);
+    }, ATRASO_DEMORA_MS);
     try {
-      const { resposta, fontes } = await perguntar(mensagemApi, sessao.current);
+      const r = await perguntar(mensagemApi, sessaoDaPergunta, req.signal);
+      if (!ehDestaConversa()) return; // resposta de uma conversa encerrada: descarta
+      controle.current.registrarAtividade();
       contextoEnviado.current = true;
-      adicionar({ autor: 'assistente', texto: resposta, fontes, mapa: extras.mapa, opcoes: extras.opcoes });
+      if (extras.chaveVinculo !== undefined) vinculoInformado.current = extras.chaveVinculo;
+      adicionar({ autor: 'assistente', texto: r.resposta, fontes: r.fontes, mapa: extras.mapa, opcoes: extras.opcoes });
+      tratarServicoDaIa(r.servico_indicado);
     } catch {
+      if (!ehDestaConversa()) return; // cancelada pelo Recomeçar ou pela inatividade
       if (extras.servicoCep !== undefined) {
         adicionar({
           autor: 'assistente',
@@ -158,12 +415,16 @@ export function AssistenteScreen() {
             : 'Estou sem conexão com a assistente completa agora. Pode escolher uma das opções abaixo?',
           opcoes: servico ? undefined : OPCOES_INICIAIS,
         });
-        if (servico) indicarServico(servico);
+        // palpite por palavras: mostra o serviço, mas só vincula depois que a pessoa confirmar
+        if (servico) indicarServico(servico, 'palavras');
       }
     } finally {
       clearTimeout(avisoDemora);
-      setPensando(false);
-      setDemorando(false);
+      req.concluir();
+      if (ehDestaConversa()) {
+        setPensando(false);
+        setDemorando(false);
+      }
     }
   };
 
@@ -202,11 +463,17 @@ export function AssistenteScreen() {
 
   const escolher = (opcao: Opcao) => {
     if (pensando) return;
-    adicionar({ autor: 'pessoa', texto: opcao.rotulo });
+    // o relógio de inatividade conta a partir das ações da pessoa (abrir o chat não conta)
+    controle.current.registrarAtividade();
     const { acao } = opcao;
+    if (acao.tipo === 'novaConversa') {
+      recomecar();
+      return;
+    }
+    adicionar({ autor: 'pessoa', texto: opcao.rotulo });
     switch (acao.tipo) {
       case 'servico':
-        indicarServico(acao.servico);
+        indicarServico(acao.servico, 'botao');
         break;
       case 'triagem':
         adicionar({
@@ -261,6 +528,29 @@ export function AssistenteScreen() {
         });
         break;
       }
+      case 'formulario':
+        aplicarResolucao(vinculoDoAtendimento(acao.idAtendimento, unidades ?? []), { anunciar: true });
+        adicionar({
+          autor: 'assistente',
+          texto: 'Qual é a sua dúvida? Escreva com suas palavras ou escolha uma das opções.',
+          opcoes: [
+            { rotulo: 'Como respondo um formulário?', acao: { tipo: 'topico', topico: 'responder' } },
+            { rotulo: 'Posso parar e continuar depois?', acao: { tipo: 'topico', topico: 'rascunho' } },
+            { rotulo: 'O que significa cada situação?', acao: { tipo: 'topico', topico: 'situacoes' } },
+          ],
+        });
+        break;
+      case 'unidade':
+        aplicarResolucao(vinculoEscolhido(acao.idUnidade, unidades ?? [], acao.servico), { anunciar: true });
+        break;
+      case 'confirmarServico':
+        // a pessoa confirmou: agora o serviço tem critério válido
+        vincularPorServico(acao.servico, 'botao');
+        break;
+      case 'escrever':
+        adicionar({ autor: 'assistente', texto: 'Tudo bem. Me conte com suas palavras o que você precisa.' });
+        campo.current?.focus();
+        break;
       case 'inicio':
         setModoCep(null);
         adicionar({ autor: 'assistente', texto: 'Claro! Sobre o que você precisa de ajuda?', opcoes: OPCOES_INICIAIS });
@@ -272,8 +562,20 @@ export function AssistenteScreen() {
     const texto = rascunho.trim();
     if (!texto || pensando) return;
     setRascunho('');
+    controle.current.registrarAtividade();
 
-    if (modoCep) {
+    // depois de "Atendimento finalizado por inatividade", a mensagem abre uma conversa nova
+    let vinculoAtual = vinculo;
+    let servicoAtual = ultimoServico;
+    if (encerrada) {
+      reiniciarEstado();
+      setEncerrada(false);
+      setMensagens(comId(boasVindas(nome)));
+      vinculoAtual = null;
+      servicoAtual = null;
+    }
+
+    if (modoCep && !encerrada) {
       const digitos = texto.replace(/\D/g, '');
       if (digitos.length === 8) {
         buscarCep(digitos, modoCep.servico);
@@ -288,27 +590,39 @@ export function AssistenteScreen() {
 
     const cepNoTexto = texto.match(/\b\d{5}-?\d{3}\b/);
     if (cepNoTexto && texto.replace(/\D/g, '').length === 8) {
-      buscarCep(cepNoTexto[0].replace(/\D/g, ''), ultimoServico);
+      buscarCep(cepNoTexto[0].replace(/\D/g, ''), servicoAtual);
       return;
     }
 
     adicionar({ autor: 'pessoa', texto });
     if (indicaRisco(texto)) adicionar({ autor: 'assistente', texto: MENSAGEM_RISCO });
 
-    // a primeira pergunta à IA leva o serviço já indicado pelos botões, para ela não perder o contexto
-    const mensagemApi =
-      ultimoServico && !contextoEnviado.current
-        ? `(Contexto: a pessoa já foi orientada a procurar o ${ultimoServico}.) ${texto}`
-        : texto;
-    void consultarIa(mensagemApi, texto);
+    // contexto para a IA, no mesmo formato "(Contexto: ...)" de antes:
+    //  - a unidade em que a pessoa já é atendida, quando o vínculo é novo nesta sessão;
+    //  - o serviço já indicado pelos botões, na primeira pergunta.
+    const chaveVinculo = chaveDoVinculo(vinculoAtual);
+    const partes: string[] = [];
+    if (vinculoAtual && chaveVinculo !== vinculoInformado.current) partes.push(contextoParaIa(vinculoAtual));
+    if (servicoAtual && !contextoEnviado.current) {
+      partes.push(`(Contexto: a pessoa já foi orientada a procurar o ${servicoAtual}.)`);
+    }
+    void consultarIa([...partes, texto].join(' '), texto, { chaveVinculo });
   };
 
-  const aoDigitar = (valor: string) => setRascunho(modoCep ? formatarCep(valor) : valor);
+  const aoDigitar = (valor: string) => {
+    controle.current.registrarAtividade();
+    setRascunho(modoCep ? formatarCep(valor) : valor);
+  };
+
+  // com o teclado aberto, a última mensagem continua à vista
+  useEffect(() => {
+    if (tecladoAberto) rolagem.current?.scrollToEnd({ animated: true });
+  }, [tecladoAberto]);
 
   const ultima = mensagens[mensagens.length - 1];
 
   return (
-    <KeyboardAvoidingView className="flex-1 bg-white" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <TelaComTeclado className="flex-1 bg-white">
       <ScreenHeader
         title="Assistente PASI"
         subtitle="Orientação sobre CRAS, CAPS e CREAS"
@@ -326,11 +640,36 @@ export function AssistenteScreen() {
         }
       />
 
+      {vinculo && (
+        <View className="flex-row items-center bg-gray-100 border-b border-border px-4 py-2">
+          <MaterialIcons name="place" size={18} color={cores.destaque} style={{ marginRight: 6 }} />
+          <Text className="flex-1 text-xs text-gray-700" numberOfLines={2}>
+            Unidade desta conversa: <Text className="text-xs font-bold text-primary">{vinculo.unidade.nome}</Text>
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              setVinculo(null);
+              vinculoInformado.current = '';
+              adicionar({
+                autor: 'assistente',
+                texto: 'Certo, não vou considerar nenhuma unidade. Se quiser, me conte o que você precisa.',
+              });
+            }}
+            className="h-9 px-3 rounded-full border border-border bg-white items-center justify-center"
+            accessibilityRole="button"
+            accessibilityLabel={`Desligar a conversa da unidade ${vinculo.unidade.nome}`}
+          >
+            <Text className="text-xs font-semibold text-primary">Remover</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <ScrollView
         ref={rolagem}
         className="flex-1 bg-gray-50"
         contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
         onContentSizeChange={() => rolagem.current?.scrollToEnd({ animated: true })}
       >
         {mensagens.map((m) => {
@@ -423,9 +762,10 @@ export function AssistenteScreen() {
         )}
       </ScrollView>
 
+      {/* com o teclado aberto, a borda de baixo do sistema fica atrás dele: não precisa da folga */}
       <View
         className="bg-white border-t border-border px-3 pt-3"
-        style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+        style={{ paddingBottom: tecladoAberto ? 12 : Math.max(insets.bottom, 12) }}
       >
         <View className="flex-row items-center">
           <TextInput
@@ -436,6 +776,7 @@ export function AssistenteScreen() {
             value={rascunho}
             onChangeText={aoDigitar}
             onSubmitEditing={enviar}
+            submitBehavior="submit"
             returnKeyType="send"
             keyboardType={modoCep ? 'number-pad' : 'default'}
             autoComplete={modoCep ? 'postal-code' : 'off'}
@@ -453,11 +794,13 @@ export function AssistenteScreen() {
             <MaterialIcons name="send" size={20} color={cores.sobrePrimaria} />
           </TouchableOpacity>
         </View>
-        <Text className="text-xs text-gray-600 leading-4 mt-2">
-          Não compartilhe documentos ou dados de saúde aqui. A assistente orienta, mas não substitui o atendimento.
-        </Text>
+        {!tecladoAberto && (
+          <Text className="text-xs text-gray-600 leading-4 mt-2">
+            Não compartilhe documentos ou dados de saúde aqui. A assistente orienta, mas não substitui o atendimento.
+          </Text>
+        )}
       </View>
-    </KeyboardAvoidingView>
+    </TelaComTeclado>
   );
 }
 

@@ -16,6 +16,7 @@ from app.agents.base import criar_agente, fontes_do_turno
 from app.agents.chatbot import no_chatbot
 from app.llm.observabilidade import callbacks, rastrear
 from app.repository import checkpointer, conversas, perfis
+from app.tools.triagem import FERRAMENTAS_TRIAGEM, servico_da_conversa
 from app.tools.unidades import FERRAMENTAS_PASI
 from app.utils.mensagens import conversa_limpa
 
@@ -30,7 +31,8 @@ class EstadoChat(TypedDict, total=False):
 # ---------- Montagem ----------
 def montar_grafo(memoria=None):
     # Aula 4: o grafo agora é o agente com ferramentas (o loop pensar ⇄ ferramentas de base.py).
-    return criar_agente("pasibot", "sistema", FERRAMENTAS_PASI, checkpointer=memoria)
+    # indicar_servico (triagem) vai junto: a IA registra o serviço indicado para o app.
+    return criar_agente("pasibot", "sistema", FERRAMENTAS_PASI + FERRAMENTAS_TRIAGEM, checkpointer=memoria)
 
 
 @lru_cache
@@ -55,7 +57,9 @@ def executar(pergunta: str, sessao: str, usuario: str = "anonimo") -> dict:
     # Posição da última pergunta do usuário: as fontes são só deste turno.
     ultima_pergunta = max(i for i, m in enumerate(estado["messages"]) if isinstance(m, HumanMessage))
     fontes = fontes_do_turno(estado["messages"][ultima_pergunta:])
-    return {"resposta": final.content, "agente": "pasibot", "fontes": fontes}
+    # Serviço indicado na sessão (indicar_servico ou a busca pedida), para o app ligar à unidade certa.
+    return {"resposta": final.content, "agente": "pasibot", "fontes": fontes,
+            "servico_indicado": servico_da_conversa(estado["messages"])}
 
 
 def historico(sessao: str) -> list[dict]:

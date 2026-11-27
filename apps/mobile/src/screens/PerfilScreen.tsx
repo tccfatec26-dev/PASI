@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, ScrollView, ActivityIndicator, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { Text, TouchableOpacity } from '../acessibilidade/Leitura';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -24,6 +24,7 @@ import { isEmailValido } from '../utils/validation';
 import { maskCpf } from '../utils/format';
 import { maskDataBr, brParaIso, isoParaBr } from '../utils/date';
 import { mensagemErroApi } from '../utils/errors';
+import { TelaComTeclado } from '../components/TelaComTeclado';
 
 type Genero = { id_genero: number; nome: string };
 
@@ -185,7 +186,7 @@ export function PerfilScreen() {
   }
 
   return (
-    <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <TelaComTeclado className="flex-1">
       <ScreenHeader title="Meu Perfil" onBack={() => navigation.goBack()} />
 
       <ScrollView
@@ -308,6 +309,6 @@ export function PerfilScreen() {
           </View>
         </View>
       </FormFooter>
-    </KeyboardAvoidingView>
+    </TelaComTeclado>
   );
 }
