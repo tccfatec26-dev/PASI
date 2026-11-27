@@ -6,9 +6,9 @@ import api from '../config/api';
  * - Pedido de atendente: API do PASI (POST /assistente/atendente), que manda
  *   e-mail para a unidade do atendimento e avisa o profissional.
  * - Perguntas que o conteúdo fixo do app não responde: API do PASIBot
- *   (repositório chat_com_alunos), a mesma da landing page. No app não há
- *   bloqueio de CORS, então ela funciona mesmo antes do ajuste pedido em
- *   docs/assistente-digital.md.
+ *   (código em pasi_bot/, serviço pasi-bot-api no Render), a mesma da landing
+ *   page. No app não há bloqueio de CORS, então a lista de endereços liberados
+ *   no pasi_bot/app/main.py não se aplica aqui.
  *
  * Nenhum dado pessoal vai para o PASIBot: o app manda só o texto digitado e
  * um identificador de conversa aleatório.
@@ -39,7 +39,7 @@ export const assistenteService = {
 // PASIBot
 // ------------------------------------------------------------------
 
-const URL_PADRAO = 'https://finbot-api-rpj9.onrender.com';
+const URL_PADRAO = 'https://pasi-bot-api.onrender.com';
 const API_PASIBOT = (process.env.EXPO_PUBLIC_ASSISTENTE_API_URL || URL_PADRAO).replace(/\/$/, '');
 /** No plano gratuito do Render a API "dorme": a primeira resposta pode levar perto de 1 minuto. */
 const TEMPO_LIMITE_MS = 60_000;

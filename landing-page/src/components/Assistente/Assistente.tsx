@@ -3,7 +3,6 @@ import type { FormEvent, KeyboardEvent } from "react";
 import { acordarApi, obterSessao, perguntar, renovarSessao } from "./api";
 import {
   MENSAGEM_RISCO,
-  MOPS_URL,
   OPCOES_INICIAIS,
   OPCOES_TRIAGEM,
   SERVICOS,
@@ -150,8 +149,8 @@ function Assistente() {
         adicionar({
           autor: "assistente",
           texto:
-            `Não consegui consultar as unidades agora. Você pode procurar no mapa oficial do governo (${MOPS_URL}) ` +
-            "ou abrir o mapa abaixo. Vale ligar para a unidade antes de ir.",
+            "Não consegui consultar as unidades agora. Tente de novo em instantes, abra o mapa abaixo ou ligue " +
+            "para a prefeitura (Secretaria de Saúde ou de Assistência Social) para saber qual unidade atende o seu endereço.",
           mapa: extras.mapa,
           opcoes: extras.opcoes,
         });

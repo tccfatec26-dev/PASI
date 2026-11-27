@@ -18,10 +18,44 @@ services:
       # E-mail exibido na seção de contato (definido no painel do Render)
       - key: VITE_CONTACT_EMAIL
         sync: false
-      # API da assistente digital (repositório chat_com_alunos). Sem esta variável,
-      # o site usa o endereço padrão definido em src/components/Assistente/api.ts
+      # API da assistente digital (serviço pasi-bot-api, abaixo). Sem esta variável,
+      # o site usa o endereço padrão definido em src/components/Assistente/api.ts.
+      # Se o Render criar o serviço com um sufixo na URL, ajuste aqui e no api.ts.
       - key: VITE_ASSISTENTE_API_URL
-        value: https://finbot-api-rpj9.onrender.com
+        value: https://pasi-bot-api.onrender.com
+
+  # API da assistente digital (PASIBot: FastAPI + LangGraph, plano gratuito:
+  # hiberna após ~15 min sem acesso; a primeira resposta pode levar ~1 min)
+  - type: web
+    name: pasi-bot-api
+    runtime: python
+    plan: free
+    rootDir: pasi_bot
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /saude
+    buildFilter:
+      paths:
+        - pasi_bot/**
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: LLM_PROVEDOR
+        value: groq
+      # Chaves secretas: digitadas no painel do Render, nunca no repositório
+      - key: GROQ_API_KEY
+        sync: false
+      - key: MONGO_URL
+        sync: false
+      - key: LANGFUSE_PUBLIC_KEY
+        sync: false
+      - key: LANGFUSE_SECRET_KEY
+        sync: false
+      # Separa os traces do Render dos locais (filtro Environment no Langfuse)
+      - key: LANGFUSE_TRACING_ENVIRONMENT
+        value: producao
+      - key: LANGFUSE_BASE_URL
+        value: https://cloud.langfuse.com
 
   # Painel web do profissional (React + Vite, site estático, plano gratuito)
   - type: web
