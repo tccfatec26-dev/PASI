@@ -1,7 +1,8 @@
 # Assistente digital na landing page
 
-Integração do PASIBot ([EllenEufrasio/chat_com_alunos](https://github.com/EllenEufrasio/chat_com_alunos))
-na landing page, seguindo o design aprovado no canvas.
+Integração do PASIBot na landing page, seguindo o design aprovado no canvas.
+O código da API fica em `pasi_bot/` (ver o [README do bot](../pasi_bot/README.md)). Ele veio do
+repositório das aulas de PLN ([EllenEufrasio/chat_com_alunos](https://github.com/EllenEufrasio/chat_com_alunos)).
 
 ## Como funciona
 
@@ -30,48 +31,17 @@ Arquivos:
 ### Configuração
 
 A URL da API vem de `VITE_ASSISTENTE_API_URL`, já declarada no `render.yaml`.
-Sem essa variável, o código usa `https://finbot-api-rpj9.onrender.com`.
+Sem essa variável, o código usa `https://pasi-bot-api.onrender.com`.
 
-Para rodar localmente com a API local:
+Para rodar a landing com a API local (veja no README do bot como subir a API):
 
 ```bash
 # landing-page/.env.local
 VITE_ASSISTENTE_API_URL=http://127.0.0.1:8000
 ```
 
-## ⚠️ Pendência no repositório do chat: liberar CORS
-
-Testado em 25/11/2026: a API responde normalmente, mas o navegador **bloqueia** as chamadas
-feitas a partir de `https://pasi-landing-page.onrender.com`, porque a API não envia o cabeçalho
-`Access-Control-Allow-Origin`. Enquanto isso não for corrigido, a landing usa só o modo offline
-(botões e cartões funcionam; texto livre e busca por CEP mostram o aviso de indisponível).
-
-A correção vai no `app/main.py` do `chat_com_alunos`:
-
-```python
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-from app.api.rotas import router
-
-app = FastAPI(title="PASIBot API", description="Assistente do PASI — FATEC / PLN")
-
-# Libera o navegador da landing page (e o Vite local) para chamar a API.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://pasi-landing-page.onrender.com",
-        "http://localhost:5173",
-    ],
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
-)
-
-app.include_router(router)
-```
-
-Depois do deploy no Render, abrir a landing, enviar uma pergunta no chat e conferir que a
-resposta chega sem erro de CORS no console do navegador.
+O CORS da API (`pasi_bot/app/main.py`) libera a landing de produção, a de dev e o `localhost`
+em qualquer porta. Uma landing publicada em outro endereço precisa entrar nessa lista.
 
 ## Avaliação do repositório do chat
 
@@ -86,7 +56,7 @@ Pontos fortes:
 
 Pontos de atenção:
 
-1. **CORS** (acima). Bloqueia a integração.
+1. **CORS:** resolvido. A API libera a landing de produção, a de dev e o Vite local.
 2. **Tempo de resposta:** cada resposta leva de 8 a 11 segundos, e a primeira depois que a API
    dorme pode levar perto de 1 minuto. A landing chama `/saude` ao abrir o chat para acordar a
    API e avisa a pessoa quando a resposta demora.
@@ -98,6 +68,6 @@ Pontos de atenção:
    estruturados, por exemplo um campo `unidades` na resposta de `/chat`.
 5. **Endpoint público sem limite de uso:** qualquer site pode chamar `/chat` e gastar a cota da
    Groq. Vale limitar por IP (por exemplo com `slowapi`) antes de divulgar.
-6. **Restos de outros projetos:** o `README.md` tem marcadores de conflito de merge
-   (`<<<<<<< HEAD`) e ainda fala em "investimentos". O título da API e o serviço no Render ainda
-   se chamam "FinBot".
+6. **Restos de outros projetos:** resolvido no README e no Render: o serviço agora é o
+   `pasi-bot-api`. O perfil do usuário (`/usuarios/{usuario}/perfil`) ainda tem campos do FinBot
+   das aulas (`objetivo`, `experiencia`).

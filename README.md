@@ -14,6 +14,7 @@ pasi/
 ├── apps/
 │   ├── api/      # NestJS + Prisma (camada de negócio)
 │   └── mobile/   # React Native + Expo (camada de apresentação)
+├── pasi_bot/     # API da assistente digital (Python, FastAPI) — ver pasi_bot/README.md
 └── package.json  # npm workspaces
 ```
 
