@@ -71,3 +71,48 @@ Pontos de atenção:
 6. **Restos de outros projetos:** resolvido no README e no Render: o serviço agora é o
    `pasi-bot-api`. O perfil do usuário (`/usuarios/{usuario}/perfil`) ainda tem campos do FinBot
    das aulas (`objetivo`, `experiencia`).
+
+# Assistente virtual no app do paciente
+
+O app (`apps/mobile`) tem o seu próprio assistente, feito para quem já está logado. Ele aparece
+no botão **Ajuda** da tela Meus Atendimentos e no item **Assistente virtual** do menu lateral.
+
+## O que ele faz
+
+| Parte | Onde roda | Arquivo |
+|---|---|---|
+| Cumprimenta pelo primeiro nome do paciente logado (`usuario.nome`) | App | `src/screens/AssistenteScreen.tsx` |
+| Avisa se algum atendimento tem formulários pendentes e leva direto para eles | App (lista de atendimentos da API do PASI) | `AssistenteScreen.tsx` |
+| Dúvidas sobre o app: responder formulário, situações, rascunho, acessibilidade, avisos, perfil | App, com texto fixo e revisado | `src/assistente/conteudo.ts` |
+| Situação de risco (ex.: "quero morrer"): mostra 192 e 188 antes de tudo | App | `conteudo.ts` |
+| Outras perguntas em texto livre | API do PASIBot (`POST /chat`) | `src/services/assistente.ts` |
+| Falar com um atendente | API do PASI (`POST /api/assistente/atendente`) | `apps/api/src/assistente/` |
+
+No app não existe bloqueio de CORS, então a lista de endereços liberados no `pasi_bot/app/main.py`
+não se aplica a ele. Nenhum dado pessoal vai para o PASIBot: o app manda só o texto digitado e uma
+sessão aleatória. A URL vem de `EXPO_PUBLIC_ASSISTENTE_API_URL` (sem ela, usa a mesma URL padrão da
+landing, `https://pasi-bot-api.onrender.com`). Para testar com o bot de dev, defina essa variável
+com a URL do `pasi-bot-api-dev`.
+
+## Falar com um atendente
+
+O paciente escolhe o atendimento (o app sugere o que tem formulários pendentes), pode escrever
+uma mensagem e toca em **Chamar atendente**. A API então:
+
+1. manda um **e-mail para a unidade do atendimento** (`unidade_atendimento.email`), com o nome e
+   o contato do paciente, o protocolo, o assunto, a mensagem e as últimas mensagens da conversa
+   com o assistente. O **Responder** do e-mail vai direto para o e-mail do paciente;
+2. grava um **aviso no sino** (tipo 4, "Pedido de atendimento") para o profissional que criou o
+   atendimento (`atendimento.id_usuario_cad`). O aviso abre o atendimento no painel.
+
+Cada parte pode falhar sozinha (unidade sem e-mail, Brevo fora do ar). A resposta diz o que deu
+certo, e o app mostra o botão **Ligar para a unidade** quando ela tem telefone. Para um toque
+repetido não lotar a caixa da unidade, o mesmo paciente só pode pedir de novo para o mesmo
+atendimento depois de 10 minutos.
+
+### Antes de publicar
+
+- Rodar `apps/api/prisma/sql/2026-11-26_pedido_atendente.sql` no Neon (cria o tipo de
+  notificação 4). Sem ele, o e-mail sai, mas o aviso do sino não é gravado.
+- Conferir se as unidades têm e-mail cadastrado no painel (Gestão > Unidades).
+- Não há mudança nativa no app: vai por atualização automática, sem APK novo.

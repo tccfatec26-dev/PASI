@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, FlatList, ActivityIndicator } from 'react-native';
 import { Text, TouchableOpacity } from '../../acessibilidade/Leitura';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { PacienteNavProp } from '../../navigation/types';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -63,6 +64,7 @@ const pendentesCount = (a: Atendimento) =>
 
 export function MeusAtendimentosScreen() {
   const cores = useCores();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<PacienteNavProp>();
   const { usuario } = useAuth();
   const { openDrawer } = useDrawer();
@@ -163,7 +165,8 @@ export function MeusAtendimentosScreen() {
           data={lista.items}
           keyExtractor={(item) => String(item.id_atendimento)}
           renderItem={renderCard}
-          contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          // espaço no fim para o botão Ajuda não cobrir o último card
+          contentContainerStyle={{ padding: 16, paddingBottom: 104 }}
           ListHeaderComponent={
             temPendentes ? (
               <View className="flex-row items-center bg-orange-50 border border-orange-200 rounded-2xl p-4 mb-4">
@@ -187,6 +190,20 @@ export function MeusAtendimentosScreen() {
           }
         />
       )}
+
+      {/* Assistente virtual */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Assistente')}
+        className="absolute right-4 flex-row items-center bg-cabecalho border-2 border-white rounded-full pl-2 pr-5 h-14"
+        style={{ bottom: Math.max(insets.bottom, 16) + 8, elevation: 6 }}
+        accessibilityRole="button"
+        accessibilityLabel="Ajuda: abrir o assistente virtual"
+      >
+        <View className="w-10 h-10 rounded-full bg-sobre-primaria/15 items-center justify-center mr-2">
+          <MaterialIcons name="chat-bubble-outline" size={22} color={cores.sobrePrimaria} />
+        </View>
+        <Text className="text-white text-sm font-bold">Ajuda</Text>
+      </TouchableOpacity>
 
       <FiltrosModal
         visible={lista.filtrosVisiveis}

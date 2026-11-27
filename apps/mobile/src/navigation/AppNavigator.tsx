@@ -13,6 +13,7 @@ import { ResponderFormularioScreen } from '../screens/paciente/ResponderFormular
 
 import { PerfilScreen } from '../screens/PerfilScreen';
 import { NotificacoesScreen } from '../screens/NotificacoesScreen';
+import { AssistenteScreen } from '../screens/AssistenteScreen';
 
 const PacStack = createNativeStackNavigator<PacienteStackParamList>();
 
@@ -30,6 +31,7 @@ export function AppNavigator() {
             <PacStack.Screen name="ResponderFormulario" component={ResponderFormularioScreen} />
             <PacStack.Screen name="Perfil" component={PerfilScreen} />
             <PacStack.Screen name="Notificacoes" component={NotificacoesScreen} />
+            <PacStack.Screen name="Assistente" component={AssistenteScreen} />
           </PacStack.Navigator>
           <AppDrawer />
         </View>

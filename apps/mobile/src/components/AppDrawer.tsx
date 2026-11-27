@@ -31,6 +31,7 @@ const MENU: MenuItem[] = [
   { label: 'Meus Atendimentos', icon: 'event-note', route: 'MeusAtendimentos' },
   { label: 'Notificações', icon: 'notifications', route: 'Notificacoes' },
   { label: 'Meu Perfil', icon: 'person', route: 'Perfil' },
+  { label: 'Assistente virtual', icon: 'support-agent', route: 'Assistente' },
 ];
 
 const SCREEN_WIDTH = Dimensions.get('window').width;

@@ -33,7 +33,7 @@ function destino(n: Notificacao) {
   return `/atendimentos/${n.id_atendimento}`;
 }
 
-/** Notificações do profissional: formulários respondidos nos atendimentos que ele criou. */
+/** Notificações do profissional: formulários respondidos e pedidos de atendente nos atendimentos que ele criou. */
 export function Notificacoes() {
   const [filtro, setFiltro] = useState<'todas' | 'nao_lidas'>('todas');
   const [pagina, setPagina] = useState(1);

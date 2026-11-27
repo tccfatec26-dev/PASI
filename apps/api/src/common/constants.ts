@@ -74,6 +74,8 @@ export const TipoNotificacao = {
   NOVOS_FORMULARIOS: 2,
   /** Profissional que criou o atendimento: o paciente concluiu um formulário. */
   FORMULARIO_RESPONDIDO: 3,
+  /** Profissional que criou o atendimento: o paciente pediu um atendente pelo assistente do app (script 2026-11-26_pedido_atendente.sql). */
+  PEDIDO_ATENDENTE: 4,
 } as const;
 
 /** tipo_pergunta (ordem da carga inicial do DDL). */
