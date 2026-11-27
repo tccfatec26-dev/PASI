@@ -1,0 +1,20 @@
+# Dependências da API (o Render instala este arquivo)
+# Aula 1 — LLM e configuração
+langchain-core>=1.0
+langchain-groq>=1.0
+langchain-google-genai>=4.0
+langchain-mistralai>=1.0
+pydantic-settings>=2.6
+
+# Aula 2 — API e observabilidade
+fastapi>=0.115       # framework para criar a API (rotas, validação, /docs)
+uvicorn>=0.30        # servidor que "liga" a API e atende os pedidos HTTP
+langfuse>=4.0        # registra cada conversa (traces) no painel do Langfuse
+
+# Aula 3 — memória (grafo + MongoDB)
+langgraph>=1.0  # grafos de agentes (nós, arestas, estado) e memória por sessão
+langgraph-checkpoint-mongodb>=0.3  # salva a memória do grafo no MongoDB
+pymongo>=4.10  # conecta o Python ao MongoDB
+
+# Aula 4 — ferramentas que chamam APIs
+requests>=2.32  # faz pedidos HTTP às APIs públicas (CNES e IBGE)

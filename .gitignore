@@ -1,3 +1,7 @@
+# .gitignore único do repositório: vale para todas as pastas (apps/*, landing-page, pasi_bot).
+# Regra sem "/" no meio (ex.: dist/) vale em qualquer pasta; com caminho (ex.: apps/mobile/ios/),
+# só naquela pasta.
+
 # Dependencies
 node_modules/
 .pnp
@@ -14,18 +18,31 @@ build/
 .env.*.local
 *.env
 
+# Chaves e certificados (ex.: assinatura do app e conta de serviço do Firebase/FCM V1,
+# que vai só para o Expo via eas credentials)
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+*firebase-adminsdk*.json
+
 # Prisma
 prisma/migrations/dev.db*
 
 # Logs
 logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
 
 # Coverage / tests
 coverage/
+
+# Playwright MCP (capturas e logs dos testes no navegador)
+.playwright-mcp/
 
 # Uploads (arquivos enviados em dev — disco local)
 apps/api/uploads/
@@ -36,8 +53,22 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+pasi_bot/.vscode/
+*.orig.*
 
-# React Native / Expo
+# React Native / Expo (apps/mobile)
 apps/mobile/.expo/
+apps/mobile/web-build/
+apps/mobile/expo-env.d.ts
+apps/mobile/.kotlin/
+apps/mobile/.metro-health-check*
+# Pastas nativas geradas pelo Expo (prebuild)
+apps/mobile/ios/
 apps/mobile/android/
-apps/mobile/ios/Pods/
+
+# Python (pasi_bot)
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/

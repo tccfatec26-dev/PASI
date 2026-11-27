@@ -1,7 +1,7 @@
-// Comunicação com a API do PASIBot (repositório chat_com_alunos).
+// Comunicação com a API do PASIBot (código em pasi_bot/, serviço pasi-bot-api no Render).
 // Contrato: POST /chat { mensagem, sessao, usuario } -> { resposta, agente, fontes }.
 
-const URL_PADRAO = "https://finbot-api-rpj9.onrender.com";
+const URL_PADRAO = "https://pasi-bot-api.onrender.com";
 
 export const API_ASSISTENTE = (import.meta.env.VITE_ASSISTENTE_API_URL ?? URL_PADRAO).replace(/\/$/, "");
 
