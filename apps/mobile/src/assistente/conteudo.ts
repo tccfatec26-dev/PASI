@@ -1,10 +1,6 @@
 /**
- * Conteúdo fixo do assistente virtual: as dúvidas sobre o app, com respostas
- * revisadas, e a triagem por palavras do texto livre.
- *
- * Fica no app para responder na hora, mesmo sem internet boa ou com a API do
- * PASIBot dormindo. O que não casar com nada aqui vai para o PASIBot
- * (services/assistente.ts).
+ * Dúvidas sobre o uso do app (opção "Como usar o aplicativo" da assistente),
+ * com respostas fixas e revisadas, que funcionam mesmo com o PASIBot dormindo.
  */
 
 export type IdTopico = 'responder' | 'situacoes' | 'rascunho' | 'acessibilidade' | 'notificacoes' | 'perfil';
@@ -128,54 +124,6 @@ export const TOPICOS: Topico[] = [
 ];
 
 export const TOPICOS_POR_ID = Object.fromEntries(TOPICOS.map((t) => [t.id, t])) as Record<IdTopico, Topico>;
-
-export function normalizar(texto: string) {
-  return texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-}
-
-const PALAVRAS_ATENDENTE = [
-  'atendente',
-  'humano',
-  'falar com uma pessoa',
-  'falar com alguem',
-  'recepcao',
-  'profissional',
-  'assistente social',
-  'psicolog',
-];
-
-const PALAVRAS_RISCO = ['suicid', 'me matar', 'tirar minha vida', 'nao quero mais viver', 'quero morrer'];
-
-export const MENSAGEM_RISCO =
-  'Sinto muito que você esteja passando por isso. Você não precisa enfrentar isso sozinho(a).\n\n' +
-  'Se você corre risco agora, ligue 192 (SAMU) ou vá ao pronto-socorro mais próximo. ' +
-  'Para conversar com alguém agora, ligue 188 (CVV), 24 horas e de graça.';
-
-/** Situação de risco à vida: os telefones aparecem antes de qualquer outra resposta. */
-export function indicaRisco(texto: string) {
-  const t = normalizar(texto);
-  return PALAVRAS_RISCO.some((p) => t.includes(p));
-}
-
-export function pedeAtendente(texto: string) {
-  const t = normalizar(texto);
-  return PALAVRAS_ATENDENTE.some((p) => t.includes(p));
-}
-
-/** Tópico do app que casa com o texto livre (o de mais palavras encontradas), ou null. */
-export function topicoDoTexto(texto: string): Topico | null {
-  const t = normalizar(texto);
-  let melhor: Topico | null = null;
-  let pontos = 0;
-  for (const topico of TOPICOS) {
-    const n = topico.palavras.filter((p) => t.includes(p)).length;
-    if (n > pontos) {
-      melhor = topico;
-      pontos = n;
-    }
-  }
-  return melhor;
-}
 
 /** Texto corrido de um tópico (para ouvir em voz alta e para o resumo enviado ao atendente). */
 export function textoDoTopico(t: Topico) {

@@ -72,47 +72,32 @@ Pontos de atenção:
    `pasi-bot-api`. O perfil do usuário (`/usuarios/{usuario}/perfil`) ainda tem campos do FinBot
    das aulas (`objetivo`, `experiencia`).
 
-# Assistente virtual no app do paciente
+# Assistente digital no app do paciente
 
-O app (`apps/mobile`) tem o seu próprio assistente, feito para quem já está logado. Ele aparece
-no botão **Ajuda** da tela Meus Atendimentos e no item **Assistente virtual** do menu lateral.
+O app (`apps/mobile`) usa a mesma assistente da landing page, com a mesma API do PASIBot. Ela
+abre pelo botão **Ajuda** da tela Meus Atendimentos e pelo item **Assistente virtual** do menu
+lateral. O atendimento é feito só pelo robô: o app não chama atendente humano nem grava nada no
+banco.
 
-## O que ele faz
+| Landing (`landing-page/src/components/Assistente/`) | App (`apps/mobile/src/`) |
+|---|---|
+| `api.ts` (POST `/chat`, `/saude`, 90 s de limite) | `services/assistente.ts` (mesma chamada, `usuario: app-pasi`) |
+| `servicos.ts` (CRAS/CREAS/CAPS, triagem, CEP, risco) | `assistente/servicos.ts` (igual, mais "Como usar o aplicativo") |
+| `TextoFormatado.tsx` (markdown, tabelas em cartões, telefones) | `assistente/TextoFormatado.tsx` (versão React Native) |
+| `Assistente.tsx` (conversa) | `screens/AssistenteScreen.tsx` (mesma conversa, em tela cheia) |
 
-| Parte | Onde roda | Arquivo |
-|---|---|---|
-| Cumprimenta pelo primeiro nome do paciente logado (`usuario.nome`) | App | `src/screens/AssistenteScreen.tsx` |
-| Avisa se algum atendimento tem formulários pendentes e leva direto para eles | App (lista de atendimentos da API do PASI) | `AssistenteScreen.tsx` |
-| Dúvidas sobre o app: responder formulário, situações, rascunho, acessibilidade, avisos, perfil | App, com texto fixo e revisado | `src/assistente/conteudo.ts` |
-| Situação de risco (ex.: "quero morrer"): mostra 192 e 188 antes de tudo | App | `conteudo.ts` |
-| Outras perguntas em texto livre | API do PASIBot (`POST /chat`) | `src/services/assistente.ts` |
-| Falar com um atendente | API do PASI (`POST /api/assistente/atendente`) | `apps/api/src/assistente/` |
+Diferenças no app:
+- cumprimenta pelo primeiro nome do paciente logado;
+- a opção **Como usar o aplicativo** responde dúvidas do app com texto fixo
+  (`assistente/conteudo.ts`);
+- "Como começar a triagem" explica os formulários em Meus Atendimentos, em vez de pedir para
+  baixar o app;
+- cada resposta tem **Ouvir** (leitura em voz alta) e as cores seguem o tema escolhido (claro,
+  escuro, alto contraste ou preto e branco).
 
-No app não existe bloqueio de CORS, então a lista de endereços liberados no `pasi_bot/app/main.py`
-não se aplica a ele. Nenhum dado pessoal vai para o PASIBot: o app manda só o texto digitado e uma
-sessão aleatória. A URL vem de `EXPO_PUBLIC_ASSISTENTE_API_URL` (sem ela, usa a mesma URL padrão da
-landing, `https://pasi-bot-api.onrender.com`). Para testar com o bot de dev, defina essa variável
-com a URL do `pasi-bot-api-dev`.
+A URL vem de `EXPO_PUBLIC_ASSISTENTE_API_URL` (sem ela, `https://pasi-bot-api.onrender.com`).
+Nenhum dado pessoal vai para o PASIBot: só o texto digitado e uma sessão aleatória. Não há
+mudança nativa: vai por atualização automática, sem APK novo.
 
-## Falar com um atendente
-
-O paciente escolhe o atendimento (o app sugere o que tem formulários pendentes), pode escrever
-uma mensagem e toca em **Chamar atendente**. A API então:
-
-1. manda um **e-mail para a unidade do atendimento** (`unidade_atendimento.email`), com o nome e
-   o contato do paciente, o protocolo, o assunto, a mensagem e as últimas mensagens da conversa
-   com o assistente. O **Responder** do e-mail vai direto para o e-mail do paciente;
-2. grava um **aviso no sino** (tipo 4, "Pedido de atendimento") para o profissional que criou o
-   atendimento (`atendimento.id_usuario_cad`). O aviso abre o atendimento no painel.
-
-Cada parte pode falhar sozinha (unidade sem e-mail, Brevo fora do ar). A resposta diz o que deu
-certo, e o app mostra o botão **Ligar para a unidade** quando ela tem telefone. Para um toque
-repetido não lotar a caixa da unidade, o mesmo paciente só pode pedir de novo para o mesmo
-atendimento depois de 10 minutos.
-
-### Antes de publicar
-
-- Rodar `apps/api/prisma/sql/2026-11-26_pedido_atendente.sql` no Neon (cria o tipo de
-  notificação 4). Sem ele, o e-mail sai, mas o aviso do sino não é gravado.
-- Conferir se as unidades têm e-mail cadastrado no painel (Gestão > Unidades).
-- Não há mudança nativa no app: vai por atualização automática, sem APK novo.
+O endpoint `POST /api/assistente/atendente` da API (PR #28) continua no código, mas o app não o
+usa mais.
