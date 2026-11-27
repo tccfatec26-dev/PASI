@@ -11,7 +11,6 @@ import Publicos from "./components/Publicos/Publicos";
 import Seguranca from "./components/Seguranca/Seguranca";
 import Solucao from "./components/Solucao/Solucao";
 import Contato from "./components/Contato/Contato";
-import Suporte from "./components/Suporte/Suporte";
 import Assistente from "./components/Assistente/Assistente";
 
 function App() {
@@ -71,7 +70,6 @@ function App() {
         <Contato />
         <CtaFinal />
         <Faq />
-        <Suporte />
       </main>
 
       <Footer />

@@ -4,8 +4,6 @@ export const DOWNLOAD_URL = "https://expo.dev/accounts/pasitccs-team/projects/pa
 export const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 export const LIGHT_LOGO_SRC = `${import.meta.env.BASE_URL}PASI%20LOGO%20CLARO.svg`;
 export const FAVICON_SRC = `${import.meta.env.BASE_URL}favicon.svg`;
-// Endereço do chat de suporte (link ou iframe do chatbot). Vazio = a aba mostra "em breve".
-export const CHATBOT_URL = import.meta.env.VITE_CHATBOT_URL ?? "";
 export const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL ?? "";
 
 
@@ -15,5 +13,4 @@ export const navLinks = [
   { href: "#para-quem", label: "Para quem é" },
   { href: "#projeto", label: "Projeto" },
   { href: "#duvidas", label: "Dúvidas" },
-  { href: "#suporte", label: "Suporte" },
 ];
