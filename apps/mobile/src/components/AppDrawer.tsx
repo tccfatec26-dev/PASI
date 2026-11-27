@@ -15,8 +15,6 @@ import { useDrawer } from '../context/DrawerContext';
 import { useAuth } from '../context/AuthContext';
 import { useProfilePhoto } from '../context/ProfilePhotoContext';
 import { navigate } from '../navigation/navigationRef';
-import { useNotificacoes } from '../context/NotificacoesContext';
-import { ContagemNaoLidas, rotuloNaoLidas } from './BotaoNotificacoes';
 import { useCores, useMovimentoReduzido } from '../acessibilidade/useTema';
 
 type IconName = keyof typeof MaterialIcons.glyphMap;
@@ -29,7 +27,7 @@ interface MenuItem {
 
 const MENU: MenuItem[] = [
   { label: 'Meus Atendimentos', icon: 'event-note', route: 'MeusAtendimentos' },
-  { label: 'Notificações', icon: 'notifications', route: 'Notificacoes' },
+  // Notificações não entram aqui: o sino no cabeçalho de Meus Atendimentos já leva até elas.
   { label: 'Meu Perfil', icon: 'person', route: 'Perfil' },
   { label: 'Assistente virtual', icon: 'support-agent', route: 'Assistente' },
 ];
@@ -51,7 +49,6 @@ export function AppDrawer() {
   const { isOpen, closeDrawer } = useDrawer();
   const { usuario, logout } = useAuth();
   const { foto } = useProfilePhoto();
-  const { naoLidas } = useNotificacoes();
 
   const cores = useCores();
   const semMovimento = useMovimentoReduzido();
@@ -169,11 +166,10 @@ export function AppDrawer() {
               className="flex-row items-center px-5 py-4"
               activeOpacity={0.6}
               accessibilityRole="button"
-              accessibilityLabel={item.route === 'Notificacoes' ? `Notificações: ${rotuloNaoLidas(naoLidas)}` : item.label}
+              accessibilityLabel={item.label}
             >
               <MaterialIcons name={item.icon} size={22} color={cores.destaque} style={{ marginRight: 16 }} />
               <Text className="flex-1 text-gray-800 text-sm font-medium">{item.label}</Text>
-              {item.route === 'Notificacoes' && <ContagemNaoLidas n={naoLidas} />}
             </TouchableOpacity>
           ))}
         </ScrollView>

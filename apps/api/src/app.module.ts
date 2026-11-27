@@ -14,7 +14,6 @@ import { MailModule } from './mail/mail.module';
 import { AcessoModule } from './acesso/acesso.module';
 import { GestaoModule } from './gestao/gestao.module';
 import { NotificacoesModule } from './notificacoes/notificacoes.module';
-import { AssistenteModule } from './assistente/assistente.module';
 
 @Module({
   imports: [
@@ -35,7 +34,6 @@ import { AssistenteModule } from './assistente/assistente.module';
     DocumentosModule,
     HealthModule,
     GestaoModule,
-    AssistenteModule,
   ],
 })
 export class AppModule {}
